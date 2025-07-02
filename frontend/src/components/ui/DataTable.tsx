@@ -51,7 +51,7 @@ export const DataTable: React.FC<DataTableProps> = ({ columns, data }) => {
         )}
       </div>
       {/* Desktop Table Layout */}
-      <div className="hidden md:block overflow-x-auto rounded-xl shadow-lg border-2 border-blue-200 dark:border-orange-700 bg-white/95 dark:bg-blue-950/95 transition-all duration-300">
+      <div className="hidden md:block overflow-x-auto overflow-visible rounded-xl shadow-lg border-2 border-blue-200 dark:border-orange-700 bg-white/95 dark:bg-blue-950/95 transition-all duration-300" style={{zIndex: 30}}>
         {/* Batch actions bar */}
         {selectedRows.length > 0 && (
           <div className="sticky top-0 z-20 flex items-center gap-4 px-4 py-2 bg-blue-50 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-orange-700 animate-fadeIn">

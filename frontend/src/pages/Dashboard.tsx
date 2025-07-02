@@ -10,7 +10,7 @@ import Loader from '../components/ui/Loader';
 import FileUpload from '../components/ui/FileUpload';
 import StoryGenerator from '../components/StoryGenerator';
 import Tabs from '../components/ui/Tabs';
-import { FiPlus, FiBarChart2, FiZap, FiBookOpen } from 'react-icons/fi';
+import { FiPlus, FiBarChart2, FiZap, FiBookOpen, FiEye, FiEyeOff, FiTrash2 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { createStory, getUserStories, Story, deleteStory, createProject, getUserProjects, Project, deleteProject } from '../services/storyService';
 import UploadStoryCard from '../components/ui/UploadStoryCard';
@@ -31,6 +31,13 @@ const promptTemplates = [
   'Describe a futuristic city in vivid detail.',
   'Create a dialogue between two rivals.',
   'Summarize the story so far in one paragraph.',
+];
+
+const genreOptions = [
+  'Fantasy', 'Science Fiction', 'Mystery', 'Romance', 'Thriller', 'Nonfiction', 'Other'
+];
+const toneOptions = [
+  'Serious', 'Humorous', 'Dramatic', 'Light', 'Dark', 'Other'
 ];
 
 const Dashboard: React.FC = () => {
@@ -180,10 +187,29 @@ const Dashboard: React.FC = () => {
                             ...story,
                             updatedAt: <span className="text-blue-500 dark:text-blue-300 font-mono text-base">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
                             actions: (
-                              <Dropdown label={<span className="text-blue-600 dark:text-orange-300 font-semibold">Actions</span>} compact>
-                                <DropdownItem className="text-blue-700 dark:text-orange-200" compact onClick={() => setPreview(story)}>Preview</DropdownItem>
-                                <DropdownItem className="text-red-600 dark:text-pink-400 font-semibold" compact onClick={() => { setSelected(story); setShowDelete(true); }}>Delete</DropdownItem>
-                              </Dropdown>
+                              <div className="flex gap-2">
+                                <button
+                                  className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1"
+                                  title="View"
+                                  onClick={() => navigate(`/story/${story.id}`)}
+                                >
+                                  <FiEye /> View
+                                </button>
+                                <button
+                                  className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition flex items-center gap-1"
+                                  title="Preview"
+                                  onClick={() => setPreview(story)}
+                                >
+                                  <FiEyeOff /> Preview
+                                </button>
+                                <button
+                                  className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-1"
+                                  title="Delete"
+                                  onClick={() => { setSelected(story); setShowDelete(true); }}
+                                >
+                                  <FiTrash2 /> Delete
+                                </button>
+                              </div>
                             ),
                           }))} />
                         </div>
@@ -259,23 +285,53 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <label className="block text-blue-700 dark:text-orange-300 font-semibold mb-1">Genre</label>
-              <input
-                type="text"
+              <select
                 className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
-                value={uploadMeta.genre}
-                onChange={e => setUploadMeta({ ...uploadMeta, genre: e.target.value })}
+                value={genreOptions.includes(uploadMeta.genre) ? uploadMeta.genre : 'Other'}
+                onChange={e => {
+                  const value = e.target.value;
+                  setUploadMeta({ ...uploadMeta, genre: value === 'Other' ? '' : value });
+                }}
                 required
-              />
+              >
+                <option value="" disabled>Select genre</option>
+                {genreOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              {(!genreOptions.includes(uploadMeta.genre) || uploadMeta.genre === '') && (
+                <input
+                  type="text"
+                  className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter custom genre"
+                  value={uploadMeta.genre}
+                  onChange={e => setUploadMeta({ ...uploadMeta, genre: e.target.value })}
+                  required
+                />
+              )}
             </div>
             <div>
               <label className="block text-blue-700 dark:text-orange-300 font-semibold mb-1">Tone</label>
-              <input
-                type="text"
+              <select
                 className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
-                value={uploadMeta.tone}
-                onChange={e => setUploadMeta({ ...uploadMeta, tone: e.target.value })}
+                value={toneOptions.includes(uploadMeta.tone) ? uploadMeta.tone : 'Other'}
+                onChange={e => {
+                  const value = e.target.value;
+                  setUploadMeta({ ...uploadMeta, tone: value === 'Other' ? '' : value });
+                }}
                 required
-              />
+              >
+                <option value="" disabled>Select tone</option>
+                {toneOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+              {(!toneOptions.includes(uploadMeta.tone) || uploadMeta.tone === '') && (
+                <input
+                  type="text"
+                  className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter custom tone"
+                  value={uploadMeta.tone}
+                  onChange={e => setUploadMeta({ ...uploadMeta, tone: e.target.value })}
+                  required
+                />
+              )}
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="primary" type="submit" disabled={loading}>Save Story</Button>

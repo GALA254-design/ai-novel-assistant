@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -7,101 +6,38 @@ import Modal from '../components/ui/Modal';
 import Loader from '../components/ui/Loader';
 import { HiOutlineBold, HiOutlineItalic, HiOutlineUnderline, HiOutlineSparkles } from 'react-icons/hi2';
 import { FiFileText, FiDownload, FiZap, FiPlus } from 'react-icons/fi';
-import { getUserProjects, Project, getChapters, addChapter, updateChapter, deleteChapter, Chapter, generateStory, addFeedback } from '../services/storyService';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useDebouncedCallback } from 'use-debounce';
-import debounce from 'lodash.debounce';
+import { updateProject, updateChapter, getChapters } from '../services/storyService';
+
+const promptTemplates = [
+  'Write a dramatic opening scene.',
+  'Describe a futuristic city in vivid detail.',
+  'Create a dialogue between two rivals.',
+  'Summarize the story so far in one paragraph.',
+];
 
 // Enhanced StoryEditor page with Card, Input, Button, and Modal
 const StoryEditor: React.FC = () => {
-  const { user } = useAuth();
-  const { projectId } = useParams();
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [chapterModal, setChapterModal] = useState<{ open: boolean; mode: 'add' | 'edit'; chapter?: Chapter }>({ open: false, mode: 'add' });
-  const [chapterForm, setChapterForm] = useState({ title: '', content: '', chapterNumber: 1 });
-  const [deleteChapterId, setDeleteChapterId] = useState<string | null>(null);
-  const [chapterLoading, setChapterLoading] = useState(false);
   const [form, setForm] = useState({ title: '', content: '' });
   const [showModal, setShowModal] = useState(false);
   const [exporting, setExporting] = useState<'pdf' | 'txt' | null>(null);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'write' | 'ai' | 'preview'>('write');
-  const [aiText, setAiText] = useState('');
-  const [undoStack, setUndoStack] = useState<string[]>([]);
-  const [rating, setRating] = useState<number | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
+  const { user } = useAuth();
+  const { projectId } = useParams();
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [chapterId, setChapterId] = useState<string | null>(null);
 
-  // Load project and chapters
+  // Fetch chapters on load
   useEffect(() => {
     if (user && projectId) {
-      setLoading(true);
-      getUserProjects(user.uid).then(projects => {
-        const found = projects.find(p => p.id === projectId);
-        setProject(found || null);
-        setLoading(false);
+      getChapters(user.uid, projectId).then(chaps => {
+        setChapters(chaps);
+        if (chaps.length > 0) setChapterId(chaps[0].id);
       });
-      getChapters(user.uid, projectId).then(setChapters);
     }
   }, [user, projectId]);
-
-  // Open add/edit chapter modal
-  const openChapterModal = (mode: 'add' | 'edit', chapter?: Chapter) => {
-    setChapterModal({ open: true, mode, chapter });
-    if (mode === 'edit' && chapter) {
-      setChapterForm({
-        title: chapter.title,
-        content: chapter.content,
-        chapterNumber: chapter.chapterNumber,
-      });
-    } else {
-      setChapterForm({ title: '', content: '', chapterNumber: chapters.length + 1 });
-    }
-  };
-
-  // Handle chapter form input changes (local state only)
-  const handleChapterInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setChapterForm(f => ({ ...f, [name]: value }));
-  };
-
-  // Handle chapter form submit
-  const handleChapterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !projectId) return;
-    setChapterLoading(true);
-    try {
-      if (chapterModal.mode === 'add') {
-        await addChapter(user.uid, projectId, chapterForm);
-      } else if (chapterModal.mode === 'edit' && chapterModal.chapter?.id) {
-        await updateChapter(user.uid, projectId, chapterModal.chapter.id, chapterForm);
-      }
-      const updated = await getChapters(user.uid, projectId);
-      setChapters(updated);
-      setChapterModal({ open: false, mode: 'add' });
-    } catch (err) {
-      // handle error
-    }
-    setChapterLoading(false);
-  };
-
-  // Handle delete chapter
-  const handleDeleteChapter = async () => {
-    if (!user || !projectId || !deleteChapterId) return;
-    setChapterLoading(true);
-    try {
-      await deleteChapter(user.uid, projectId, deleteChapterId);
-      const updated = await getChapters(user.uid, projectId);
-      setChapters(updated);
-      setDeleteChapterId(null);
-    } catch (err) {
-      // handle error
-    }
-    setChapterLoading(false);
-  };
-
-  if (loading) return <Loader />;
-  if (!project) return <div className="p-8 text-center text-red-600">Project not found.</div>;
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -111,16 +47,13 @@ const StoryEditor: React.FC = () => {
   // Handle form submit (simulate save)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !projectId) return;
-    setLoading(true);
-    try {
-      // Save the story (update project metadata and first chapter)
-      await updateChapter(user.uid, projectId, chapters[0]?.id, { title: form.title, content: form.content });
-      setShowModal(true);
-    } catch (err) {
-      // handle error
+    if (user && projectId && form.title) {
+      await updateProject(user.uid, projectId, { title: form.title });
+      if (chapterId) {
+        await updateChapter(user.uid, projectId, chapterId, { content: form.content });
+      }
+    setShowModal(true);
     }
-    setLoading(false);
   };
 
   // Handle export (simulate)
@@ -142,110 +75,6 @@ const StoryEditor: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full mx-auto p-4 md:p-8 md:max-w-6xl">
-        {/* Project Metadata */}
-        <Card className="mb-6 p-6 flex flex-col md:flex-row gap-6 items-center">
-          {project.coverImage && (
-            <img src={project.coverImage} alt="Cover" className="w-32 h-44 object-cover rounded-lg shadow" />
-          )}
-          <div className="flex-1">
-            <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{project.title}</h2>
-            <div className="text-blue-500 dark:text-orange-200 mb-1 font-semibold">{project.genre} &middot; {project.status}</div>
-            <div className="text-gray-700 dark:text-gray-200 mb-2">{project.description}</div>
-          </div>
-        </Card>
-        {/* Chapters List */}
-        <Card className="mb-6 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-blue-700 dark:text-orange-300">Chapters</h3>
-            <Button variant="primary" onClick={() => openChapterModal('add')}>Add Chapter</Button>
-          </div>
-          {chapters.length === 0 ? (
-            <div className="text-blue-500 dark:text-blue-200">No chapters yet.</div>
-          ) : (
-            <ul className="divide-y divide-blue-100 dark:divide-blue-900">
-              {chapters.map(ch => (
-                <li key={ch.id} className="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <div>
-                    <div className="font-semibold text-blue-900 dark:text-blue-100">Chapter {ch.chapterNumber}: {ch.title}</div>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 max-w-2xl">{ch.content.slice(0, 200)}{ch.content.length > 200 ? '...' : ''}</div>
-                  </div>
-                  <div className="flex gap-2 mt-2 md:mt-0">
-                    <Button variant="secondary" onClick={() => openChapterModal('edit', ch)}>Edit</Button>
-                    <Button variant="danger" onClick={() => setDeleteChapterId(ch.id!)}>Delete</Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        {/* Chapter Modal */}
-        <Modal isOpen={chapterModal.open} onClose={() => setChapterModal({ open: false, mode: 'add' })} title={chapterModal.mode === 'add' ? 'Add Chapter' : 'Edit Chapter'}>
-          <form onSubmit={handleChapterSubmit} className="space-y-4">
-            <div>
-              <label className="block text-blue-700 dark:text-orange-300 font-semibold mb-1">Title</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
-                name="title"
-                value={chapterForm.title}
-                onChange={handleChapterInputChange}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-blue-700 dark:text-orange-300 font-semibold mb-1">Content</label>
-              <textarea
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 min-h-[120px]"
-                name="content"
-                value={chapterForm.content}
-                onChange={handleChapterInputChange}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-blue-700 dark:text-orange-300 font-semibold mb-1">Chapter Number</label>
-              <input
-                type="number"
-                min={1}
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
-                name="chapterNumber"
-                value={chapterForm.chapterNumber}
-                onChange={handleChapterInputChange}
-                required
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="primary" type="submit" disabled={chapterLoading}>{chapterModal.mode === 'add' ? 'Add' : 'Save'}</Button>
-              <Button variant="secondary" type="button" onClick={() => setChapterModal({ open: false, mode: 'add' })}>Cancel</Button>
-            </div>
-          </form>
-          {aiText && (
-            <div className="mt-2 flex gap-2 items-center">
-              <Button variant="secondary" onClick={() => {
-                if (undoStack.length > 0) {
-                  setChapterForm(f => ({ ...f, content: undoStack[undoStack.length - 1] }));
-                  setUndoStack(undoStack.slice(0, -1));
-                  setAiText('');
-                }
-              }}>Undo AI</Button>
-              <span className="ml-2">Rate this continuation:</span>
-              {[1,2,3,4,5].map(n => (
-                <button key={n} className={`px-2 py-1 rounded ${rating === n ? 'bg-blue-600 text-white' : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-orange-200'}`} onClick={async () => {
-                  setRating(n);
-                  if (user) await addFeedback(user.uid, { type: 'ai-continuation', message: aiText, rating: n });
-                }}>{n}</button>
-              ))}
-            </div>
-          )}
-        </Modal>
-        {/* Delete Chapter Modal */}
-        <Modal isOpen={!!deleteChapterId} onClose={() => setDeleteChapterId(null)} title="Delete Chapter?">
-          <p className="mb-4 text-blue-900 dark:text-blue-100">Are you sure you want to delete this chapter? This action cannot be undone.</p>
-          <div className="flex gap-2">
-            <Button variant="danger" onClick={handleDeleteChapter} disabled={chapterLoading}>Delete</Button>
-            <Button variant="secondary" onClick={() => setDeleteChapterId(null)}>Cancel</Button>
-          </div>
-        </Modal>
         {/* Sticky header */}
         <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#232946]/80 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex items-center justify-between px-4 py-2 shadow">
           <h2 className="text-2xl font-bold text-blue-700 dark:text-orange-300">Story Editor</h2>
@@ -269,6 +98,11 @@ const StoryEditor: React.FC = () => {
                     name="title"
                     value={form.title}
                     onChange={handleChange}
+                    onBlur={async () => {
+                      if (user && projectId && form.title) {
+                        await updateProject(user.uid, projectId, { title: form.title });
+                      }
+                    }}
                     placeholder="Enter story title"
                     required
                   />
@@ -328,6 +162,22 @@ const StoryEditor: React.FC = () => {
           </div>
           {/* Right: Panels */}
           <div className="md:w-1/4 w-full flex-shrink-0 flex flex-col gap-6 sticky top-20 self-start min-w-0">
+            <Card className="p-4">
+              <h4 className="font-bold mb-2">Prompt Templates</h4>
+              <ul className="space-y-2">
+                {promptTemplates.map((prompt, i) => (
+                  <li key={i}>
+                    <button
+                      className="w-full text-left px-3 py-2 rounded-lg bg-blue-100/70 dark:bg-blue-900/70 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-900 dark:text-blue-100 font-medium transition-all duration-200"
+                      onClick={() => setForm(f => ({ ...f, content: f.content + (f.content ? '\n' : '') + prompt }))}
+                      type="button"
+                    >
+                      {prompt}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
             <Card className="p-4">
               <h4 className="font-bold mb-2">Recent Stories</h4>
               <ul className="space-y-2 text-blue-900 dark:text-blue-100">

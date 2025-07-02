@@ -16,6 +16,7 @@ import Help from './pages/Help';
 import Recover from './pages/Recover';
 import VerifyEmail from './pages/VerifyEmail';
 import NewStory from './pages/NewStory';
+import StoryView from './pages/StoryView';
 import './App.css';
 
 import { AuthProvider } from './context/AuthContext'; // <--- IMPORT AuthProvider here
@@ -40,6 +41,7 @@ const App: React.FC = () => {
             <Route path="/help" element={<Help />} />
             <Route path="/recover" element={<Recover />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/story/:projectId" element={<StoryView />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
         </Layout>
