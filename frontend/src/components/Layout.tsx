@@ -180,20 +180,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         )}
         {/* Main content area */}
         <main className="flex-1 w-full p-0 sm:p-0 md:p-0 flex flex-col gap-8 transition-all duration-300 min-h-[calc(100vh-72px)]">
-          {/* Floating Action Button (FAB) and Welcome Pop-up for Dashboard */}
-          {isDashboard && (
-              <button
-                className="fixed bottom-8 right-8 z-50 flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white shadow-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                aria-label="New Story"
-                onClick={() => {
-                  // Dispatch a custom event to open the story generator modal in Dashboard
-                  window.dispatchEvent(new CustomEvent('open-story-gen'));
-                }}
-              >
-                <FiPlus size={24} />
-                <span className="hidden sm:inline">New Story</span>
-              </button>
-          )}
           {/* Main content card */}
           <div className="w-full flex flex-col gap-8 min-h-full">
             {children}

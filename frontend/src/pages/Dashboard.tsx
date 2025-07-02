@@ -224,7 +224,6 @@ const Dashboard: React.FC = () => {
           <div className="w-full md:w-1/4 flex-shrink-0 flex flex-col gap-6 sticky top-20 self-start min-w-0">
             <Card className="p-4">
               <h4 className="font-bold mb-2">Quick Actions</h4>
-              <Button variant="primary" icon={<FiPlus />} className="w-full mb-2">New Story</Button>
               <Button variant="secondary" className="w-full mb-2">Export All</Button>
               <Button variant="secondary" className="w-full">Delete Selected</Button>
             </Card>
