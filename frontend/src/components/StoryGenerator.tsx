@@ -31,21 +31,49 @@ const StoryGenerator: React.FC = () => {
     return () => window.removeEventListener('use-prompt-template', handler as EventListener);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setStory('');
-    try {
-      const response = await generateStory({ prompt, genre, tone });
-      setStory(response.story || '');
-      setShowResultModal(true);
-    } catch (err: any) {
-      setError(typeof err === 'string' ? err : 'Story generation failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // storyService.ts
+
+// export async function generateStory({ prompt, genre, tone }) {
+//   const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ai-novel-generator", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({
+//       title: prompt,
+//       genre,
+//       tone,
+//     }),
+//   });
+
+//   if (!response.ok) {
+//     throw new Error("Failed to generate story from n8n.");
+//   }
+
+//   const blob = await response.blob(); // because your n8n workflow returns a file
+//   return {
+//     story: await blob.text(), // extract the text from the file
+//     fileUrl: URL.createObjectURL(blob), // optional: to trigger download
+//   };
+// }
+
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  setStory('');
+
+  try {
+    const response = await generateStory({ prompt, genre, tone });
+    setStory(response.story || '');
+    setShowResultModal(true);
+  } catch (err: any) {
+    setError(typeof err === 'string' ? err : 'Story generation failed');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch min-h-0 w-full mt-2 sm:mt-4 max-w-3xl mx-auto">
