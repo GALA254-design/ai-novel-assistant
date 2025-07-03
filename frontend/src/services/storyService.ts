@@ -76,6 +76,7 @@ export interface Feedback {
   createdAt?: any;
 }
 
+<<<<<<< HEAD
 export async function generateStory(params: GenerateStoryParams): Promise<GenerateStoryResponse> {
   const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook-test/ultimate-agentic-novel', {
     method: 'POST',
@@ -105,6 +106,31 @@ export async function generateStory(params: GenerateStoryParams): Promise<Genera
 //     throw error.response?.data || error.message || 'Story generation failed';
 //   }
 // } 
+=======
+export async function generateStory({ prompt, genre, tone }) {
+  const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      title: prompt,
+      genre,
+      tone,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to generate story from n8n.");
+  }
+
+  const blob = await response.blob(); // because your n8n workflow returns a file
+  return {
+    story: await blob.text(), // extract the text from the file
+    fileUrl: URL.createObjectURL(blob), // optional: to trigger download
+  };
+}
+>>>>>>> 3e3e879f518c32329bc841962304115b9482af36
 
 export async function createStory(story: Omit<Story, 'id' | 'createdAt' | 'updatedAt'>) {
   const now = Timestamp.now();
