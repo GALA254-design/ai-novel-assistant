@@ -14,5 +14,8 @@ export default defineConfig({
       '.ngrok-free.app', // Allow all ngrok subdomains
       '28a7-41-90-184-83.ngrok-free.app' // Your specific ngrok URL
     ],
+    proxy: {
+      '/api': 'http://localhost:8000',
+    },
   }
 })

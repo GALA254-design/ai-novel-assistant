@@ -77,8 +77,15 @@ export interface Feedback {
 }
 
 export async function generateStory(params: GenerateStoryParams): Promise<GenerateStoryResponse> {
-  const response = await api.post<GenerateStoryResponse>('/api/llm/generate', params);
-  return response.data;
+  const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook-test/ultimate-agentic-novel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to generate story');
+  }
+  return await response.json();
 }
 
 // The following function is not recommended for production and may cause CORS issues.
@@ -97,7 +104,7 @@ export async function generateStory(params: GenerateStoryParams): Promise<Genera
 //     console.error('Error from n8n webhook:', error);
 //     throw error.response?.data || error.message || 'Story generation failed';
 //   }
-// }
+// } 
 
 export async function createStory(story: Omit<Story, 'id' | 'createdAt' | 'updatedAt'>) {
   const now = Timestamp.now();

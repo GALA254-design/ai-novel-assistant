@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createProject, addChapter } from '../services/storyService';
 import { FiX } from 'react-icons/fi';
+import Modal from '../components/ui/Modal';
 
 const genres = ['Any', 'Fantasy', 'Sci-Fi', 'Mystery', 'Romance', 'Horror', 'Adventure'];
 const tones = ['Any', 'Serious', 'Humorous', 'Dramatic', 'Inspiring', 'Dark', 'Lighthearted'];
@@ -36,6 +37,8 @@ const NewStory: React.FC = () => {
   const [coverImageInput, setCoverImageInput] = useState('');
   const [statusInput, setStatusInput] = useState<'Draft' | 'Editing' | 'Completed'>('Draft');
   const [metaComplete, setMetaComplete] = useState(false);
+  const [genre, setGenre] = useState('Any');
+  const [chapters, setChapters] = useState(1);
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -89,7 +92,9 @@ const NewStory: React.FC = () => {
     setError('');
     setStory('');
     try {
-      const response = await import('../services/storyService').then(m => m.generateStory({ prompt, genre: meta.genre, tone }));
+      // Combine all fields into a single prompt
+      const fullPrompt = `Title: ${titleInput || meta.title}\nGenre: ${genre || genreInput || meta.genre}\nTone: ${tone}\nChapters: ${chapters}\nDescription: ${descriptionInput || meta.description}\nPrompt: ${prompt}`;
+      const response = await import('../services/storyService').then(m => m.generateStory({ prompt: fullPrompt, genre, tone, chapters }));
       setStory(response.story || '');
       setShowResultModal(true);
     } catch (err: any) {
@@ -110,7 +115,7 @@ const NewStory: React.FC = () => {
         chapterNumber: 1,
       });
       setShowResultModal(false);
-      navigate(`/editor/${projectId}`);
+      navigate(`/story/${projectId}`);
     } catch (err) {
       setError('Could not save story. Please try again.');
     }
@@ -218,12 +223,13 @@ const NewStory: React.FC = () => {
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Genre</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow"
-                  value={genreInput}
-                  disabled
-                />
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                  value={genre}
+                  onChange={e => setGenre(e.target.value)}
+                >
+                  {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
               </div>
               <div className="flex-1">
                 <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Tone</label>
@@ -234,6 +240,17 @@ const NewStory: React.FC = () => {
                 >
                   {tones.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
+              </div>
+              <div className="flex-1">
+                <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Chapters</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                  value={chapters}
+                  onChange={e => setChapters(Number(e.target.value))}
+                />
               </div>
             </div>
             <button
@@ -247,8 +264,23 @@ const NewStory: React.FC = () => {
           </form>
         )}
       </div>
+      {/* Result Modal */}
+      <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} title="Generated Story">
+        <div className="flex flex-col gap-2 h-full max-h-[80vh] w-full max-w-2xl mx-auto">
+          <div className="bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 mb-2 text-sm text-blue-700 dark:text-orange-200 font-medium shadow">
+            <div><span className="font-semibold">Prompt:</span> {prompt}</div>
+            <div><span className="font-semibold">Genre:</span> {genre}</div>
+            <div><span className="font-semibold">Tone:</span> {tone}</div>
+            <div><span className="font-semibold">Chapters:</span> {chapters}</div>
+          </div>
+          <div className="whitespace-pre-line bg-blue-50 dark:bg-blue-950/60 rounded-lg px-4 py-4 text-lg text-blue-900 dark:text-blue-100 shadow-inner max-h-[60vh] overflow-y-auto border border-blue-200 dark:border-blue-800 flex-1">
+            {story}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
 
 export default NewStory;
+ 

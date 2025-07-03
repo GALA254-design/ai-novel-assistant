@@ -3,11 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loader from '../components/ui/Loader';
-import { getUserProjects, getChapters, Project, Chapter, Story, updateStory, updateProject } from '../services/storyService';
+import { getUserProjects, getChapters, Project, Chapter, Story, updateStory, updateProject, updateChapter } from '../services/storyService';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '../components/ui/Toast';
+import jsPDF from 'jspdf';
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 const StoryView: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +23,9 @@ const StoryView: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<any>({});
   const { showToast } = useToast();
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
+  const [chapterEditMode, setChapterEditMode] = useState(false);
+  const [chapterForm, setChapterForm] = useState<{ title: string; content: string }>({ title: '', content: '' });
 
   useEffect(() => {
     if (user && projectId) {
@@ -30,7 +36,14 @@ const StoryView: React.FC = () => {
         if (found) setForm(found);
         setLoading(false);
       });
-      getChapters(user.uid, projectId).then(setChapters);
+      getChapters(user.uid, projectId).then(chs => {
+        setChapters(chs);
+        console.log('Fetched chapters:', chs);
+        if (chs.length > 0) {
+          setSelectedChapterIndex(0);
+          setChapterForm({ title: chs[0].title, content: chs[0].content });
+        }
+      });
       (async () => {
         const storyDoc = await getDoc(doc(db, 'stories', projectId));
         if (storyDoc.exists()) {
@@ -43,6 +56,15 @@ const StoryView: React.FC = () => {
       setLoading(false);
     }
   }, [user, projectId]);
+
+  useEffect(() => {
+    if (chapters.length > 0 && selectedChapterIndex >= 0 && selectedChapterIndex < chapters.length) {
+      setChapterForm({
+        title: chapters[selectedChapterIndex].title,
+        content: chapters[selectedChapterIndex].content,
+      });
+    }
+  }, [selectedChapterIndex, chapters]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -81,6 +103,39 @@ const StoryView: React.FC = () => {
     setEditMode(false);
   };
 
+  const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedChapterIndex(Number(e.target.value));
+    setChapterEditMode(false);
+  };
+
+  const handlePrevChapter = () => {
+    setSelectedChapterIndex(i => Math.max(0, i - 1));
+    setChapterEditMode(false);
+  };
+  const handleNextChapter = () => {
+    setSelectedChapterIndex(i => Math.min(chapters.length - 1, i + 1));
+    setChapterEditMode(false);
+  };
+
+  const handleChapterFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setChapterForm({ ...chapterForm, [e.target.name]: e.target.value });
+  };
+
+  const handleChapterSave = async () => {
+    if (!user || !projectId || chapters.length === 0) return;
+    const chapter = chapters[selectedChapterIndex];
+    await updateChapter(user.uid, projectId, chapter.id, {
+      title: chapterForm.title,
+      content: chapterForm.content,
+      chapterNumber: chapter.chapterNumber,
+    });
+    const updatedChapters = [...chapters];
+    updatedChapters[selectedChapterIndex] = { ...chapter, ...chapterForm };
+    setChapters(updatedChapters);
+    setChapterEditMode(false);
+    showToast('Chapter updated!', 'success');
+  };
+
   if (loading) return <Loader />;
   if (!project && !story) return <div className="p-8 text-center text-red-600">Project or Story not found or you do not have access.</div>;
 
@@ -90,6 +145,42 @@ const StoryView: React.FC = () => {
         <div className="w-full max-w-4xl mx-auto">
           <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4">&larr; Back to Dashboard</Button>
           <Card className="mb-6 p-6 flex flex-col gap-4">
+            <div className="flex gap-2 mb-2">
+              <Button variant="primary" onClick={() => {
+                const blob = new Blob([story.content], { type: 'text/plain;charset=utf-8' });
+                saveAs(blob, `${story.title || 'story'}.txt`);
+              }}>Export TXT</Button>
+              <Button variant="primary" onClick={() => {
+                const doc = new Document({
+                  sections: [
+                    {
+                      properties: {},
+                      children: [
+                        new Paragraph({
+                          children: [
+                            new TextRun(story.title || ''),
+                          ],
+                          heading: 'Heading1',
+                        }),
+                        new Paragraph(story.content || ''),
+                      ],
+                    },
+                  ],
+                });
+                Packer.toBlob(doc).then(blob => {
+                  saveAs(blob, `${story.title || 'story'}.docx`);
+                });
+              }}>Export DOCX</Button>
+              <Button variant="primary" onClick={() => {
+                const doc = new jsPDF();
+                doc.setFontSize(16);
+                doc.text(story.title || '', 10, 20);
+                doc.setFontSize(12);
+                const splitText = doc.splitTextToSize(story.content || '', 180);
+                doc.text(splitText, 10, 30);
+                doc.save(`${story.title || 'story'}.pdf`);
+              }}>Export PDF</Button>
+            </div>
             {editMode ? (
               <>
                 <input
@@ -185,7 +276,7 @@ const StoryView: React.FC = () => {
               <>
                 <div className="flex justify-between items-center">
                   <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{project.title}</h2>
-                  <Button variant="primary" onClick={() => setEditMode(true)}>Edit</Button>
+                  <Button variant="primary" onClick={() => { setEditMode(true); setChapterEditMode(true); }}>Edit</Button>
                 </div>
                 <div className="text-blue-500 dark:text-orange-200 mb-1 font-semibold">{project.genre} &middot; {project.status}</div>
                 <div className="text-gray-700 dark:text-gray-200 mb-2">{project.description}</div>
@@ -198,16 +289,51 @@ const StoryView: React.FC = () => {
           {chapters.length === 0 ? (
             <div className="text-blue-500 dark:text-blue-200">No chapters yet.</div>
           ) : (
-            <ul className="space-y-8">
-              {chapters.map(ch => (
-                <li key={ch.id}>
-                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Chapter {ch.chapterNumber}: {ch.title}</div>
+            <>
+              <pre style={{ color: 'red', fontSize: 12 }}>{JSON.stringify(chapters, null, 2)}</pre>
+              <div className="flex items-center gap-4 mb-4">
+                <Button variant="secondary" onClick={handlePrevChapter} disabled={selectedChapterIndex === 0}>Previous</Button>
+                <select
+                  className="px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow"
+                  value={selectedChapterIndex}
+                  onChange={handleChapterChange}
+                >
+                  {chapters.map((ch, idx) => (
+                    <option key={ch.id} value={idx}>Chapter {ch.chapterNumber}: {ch.title}</option>
+                  ))}
+                </select>
+                <Button variant="secondary" onClick={handleNextChapter} disabled={selectedChapterIndex === chapters.length - 1}>Next</Button>
+                <Button variant="primary" onClick={() => setChapterEditMode(e => !e)}>{chapterEditMode ? 'Cancel Edit' : 'Edit Chapter'}</Button>
+                {chapterEditMode && (
+                  <Button variant="primary" onClick={handleChapterSave}>Save</Button>
+                )}
+              </div>
+              {chapterEditMode ? (
+                <>
+                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Editing Chapter {chapters[selectedChapterIndex].chapterNumber}</div>
+                  <input
+                    className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
+                    name="title"
+                    value={chapterForm.title}
+                    onChange={handleChapterFormChange}
+                  />
+                  <textarea
+                    className="whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-lg p-4 shadow-inner mb-2 border border-blue-200 dark:border-orange-700"
+                    name="content"
+                    value={chapterForm.content}
+                    onChange={handleChapterFormChange}
+                    rows={10}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Chapter {chapters[selectedChapterIndex].chapterNumber}: {chapters[selectedChapterIndex].title}</div>
                   <div className="whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-lg p-4 shadow-inner">
-                    {ch.content}
+                    {chapters[selectedChapterIndex].content}
                   </div>
-                </li>
-              ))}
-            </ul>
+                </>
+              )}
+            </>
           )}
         </Card>
       </div>

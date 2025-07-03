@@ -1,6 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 const { File, User, Story } = require('../models');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 
 // POST /api/files/upload
 exports.uploadFile = async (req, res) => {
@@ -78,5 +80,30 @@ exports.listFilesByStory = async (req, res) => {
     res.json(files);
   } catch (err) {
     res.status(500).json({ error: 'Failed to list files for story', details: err.message });
+  }
+};
+
+// Extract text from uploaded PDF or DOCX
+exports.extractPdf = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
+    }
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    let text = '';
+    if (ext === '.pdf') {
+      const dataBuffer = fs.readFileSync(req.file.path);
+      const data = await pdfParse(dataBuffer);
+      text = data.text;
+    } else if (ext === '.docx') {
+      const dataBuffer = fs.readFileSync(req.file.path);
+      const result = await mammoth.extractRawText({ buffer: dataBuffer });
+      text = result.value;
+    } else {
+      return res.status(400).json({ error: 'Unsupported file type.' });
+    }
+    res.json({ text });
+  } catch (err) {
+    res.status(500).json({ error: 'File extraction failed', details: err.message });
   }
 }; 

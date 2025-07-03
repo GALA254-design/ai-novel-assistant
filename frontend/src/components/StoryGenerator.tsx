@@ -22,6 +22,7 @@ const StoryGenerator: React.FC = () => {
   const [error, setError] = useState('');
   const [story, setStory] = useState('');
   const [showResultModal, setShowResultModal] = useState(false);
+  const [chapters, setChapters] = useState(1);
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -37,7 +38,7 @@ const StoryGenerator: React.FC = () => {
     setError('');
     setStory('');
     try {
-      const response = await generateStory({ prompt, genre, tone });
+      const response = await generateStory({ prompt, genre, tone, chapters });
       setStory(response.story || '');
       setShowResultModal(true);
     } catch (err: any) {
@@ -86,6 +87,17 @@ const StoryGenerator: React.FC = () => {
               {tones.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+          <div className="flex-1">
+            <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Chapters</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+              value={chapters}
+              onChange={e => setChapters(Number(e.target.value))}
+            />
+          </div>
         </div>
         <button
           type="submit"
@@ -103,6 +115,7 @@ const StoryGenerator: React.FC = () => {
             <div><span className="font-semibold">Prompt:</span> {prompt}</div>
             <div><span className="font-semibold">Genre:</span> {genre}</div>
             <div><span className="font-semibold">Tone:</span> {tone}</div>
+            <div><span className="font-semibold">Chapters:</span> {chapters}</div>
           </div>
           <div className="whitespace-pre-line bg-blue-50 dark:bg-blue-950/60 rounded-lg px-4 py-4 text-lg text-blue-900 dark:text-blue-100 shadow-inner max-h-[60vh] overflow-y-auto border border-blue-200 dark:border-blue-800 flex-1">
             {story}

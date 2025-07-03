@@ -34,14 +34,33 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// Multer file filter: only .pdf and .docx
+const docxPdfFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ext === '.pdf' || ext === '.docx') {
+    cb(null, true);
+  } else {
+    cb(new Error('Only .pdf and .docx files are allowed'));
+  }
+};
+
 const upload = multer({
   storage,
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
 
+const pdfUpload = multer({
+  storage,
+  fileFilter: docxPdfFileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for PDFs and DOCX
+});
+
 // POST /api/files/upload
 router.post('/upload', upload.single('file'), fileController.uploadFile);
+
+// POST /api/files/extract-pdf
+router.post('/extract-pdf', pdfUpload.single('file'), fileController.extractPdf);
 
 // GET /api/files/:filename
 router.get('/:filename', fileController.downloadFile);

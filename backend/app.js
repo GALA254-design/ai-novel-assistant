@@ -8,6 +8,7 @@ const storyRoutes = require('./routes/storyRoutes');
 const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const llmRoutes = require('./routes/llm.js');
+const fileRoutes = require('./routes/fileRoutes');
 
 // Import the new authentication routes
 const authRoutes = require('./routes/authRoutes'); // Assuming you've created this file as discussed
@@ -29,6 +30,7 @@ app.use('/api/stories', storyRoutes);
 app.use('/api/users', userRoutes); // User management (e.g., creating users via registration)
 app.use('/api/projects', projectRoutes);
 app.use('/api/llm', llmRoutes);
+app.use('/api/files', fileRoutes);
 
 // NEW: Mount your authentication routes.
 // We're mounting it under '/api' so your login endpoint becomes '/api/login'.

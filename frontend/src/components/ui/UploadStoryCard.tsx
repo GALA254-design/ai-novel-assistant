@@ -2,11 +2,11 @@ import React, { useRef, useState } from 'react';
 import Button from './Button';
 import Loader from './Loader';
 import { FiUpload, FiFileText, FiFile } from 'react-icons/fi';
-import { getDocument } from 'pdfjs-dist';
 import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createProject, addChapter } from '../../services/storyService';
+import { extractPdfText } from '../../services/pdfService';
 
 interface UploadStoryCardProps {
   onUpload?: (text: string, file: File) => Promise<void>;
@@ -31,23 +31,30 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
     setShowManualEntry(false);
     try {
       let text = '';
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      const ext = file.name.toLowerCase().split('.').pop();
+      if (ext === 'pdf') {
         try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await getDocument({ data: arrayBuffer }).promise;
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            text += content.items.map((item: any) => item.str).join(' ') + '\n';
-          }
+          text = await extractPdfText(file);
         } catch (err) {
+          console.error('PDF extraction error:', err);
           setError('Unsupported or unreadable file format (PDF). You can manually paste the text below.');
           setShowManualEntry(true);
           setFile(file);
           setLoading(false);
           return;
         }
-      } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
+      } else if (ext === 'docx') {
+        try {
+          text = await extractPdfText(file);
+        } catch (err) {
+          console.error('DOCX extraction error:', err);
+          setError('Unsupported or unreadable file format (DOCX). You can manually paste the text below.');
+          setShowManualEntry(true);
+          setFile(file);
+          setLoading(false);
+          return;
+        }
+      } else if (ext === 'txt') {
         try {
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -67,15 +74,17 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
           setFile(null);
         }
       } else {
-        setError('Unsupported file type. Please upload a PDF or plain text (.txt) file.');
+        setError('Unsupported file type. Please upload a PDF, DOCX, or plain text (.txt) file.');
         setFile(null);
+        setLoading(false);
+        return;
       }
       if (text) {
         setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
         // Immediately create project and add chapter
         if (user) {
           const defaultMeta = {
-            title: file.name.replace(/\.(pdf|txt)$/i, ''),
+            title: file.name.replace(/\.(pdf|docx|txt)$/i, ''),
             genre: '',
             description: '',
             coverImage: '',
@@ -177,7 +186,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
       >
         <input
           type="file"
-          accept=".pdf,.txt"
+          accept=".pdf,.docx,.txt"
           className="hidden"
           ref={inputRef}
           onChange={handleChange}
@@ -185,13 +194,13 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
         <div className="flex flex-col items-center gap-2">
           {file ? (
             <>
-              {file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? <FiFile className="w-8 h-8 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-8 h-8 text-blue-500 dark:text-orange-300" />}
+              {(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) ? <FiFile className="w-8 h-8 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-8 h-8 text-blue-500 dark:text-orange-300" />}
               <span className="font-medium text-blue-700 dark:text-orange-200">{file.name}</span>
             </>
           ) : (
             <>
               <FiUpload className="w-8 h-8 text-blue-400 dark:text-orange-400" />
-              <span className="text-blue-500 dark:text-orange-200">Drag & drop or click to select a PDF or .txt file</span>
+              <span className="text-blue-500 dark:text-orange-200">Drag & drop or click to select a PDF, DOCX, or .txt file</span>
             </>
           )}
         </div>

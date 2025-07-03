@@ -127,6 +127,20 @@ const Dashboard: React.FC = () => {
     showToast('Story uploaded!', 'success');
   };
 
+  // Add this function inside Dashboard component
+  const handleBatchDelete = async (selectedIndexes: number[]) => {
+    if (!user) return;
+    setLoading(true);
+    const toDelete = getFilteredStories('all')().filter((_, i) => selectedIndexes.includes(i));
+    for (const story of toDelete) {
+      await deleteStory(story.id);
+    }
+    const updated = await getUserStories(user.uid);
+    setStories(updated);
+    setLoading(false);
+    showToast('Selected stories deleted', 'success');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full mx-auto p-4 md:p-8 md:max-w-6xl">
@@ -183,35 +197,40 @@ const Dashboard: React.FC = () => {
                       </div>
                       <Card className="p-0 overflow-hidden bg-white/95 dark:bg-blue-950/95 border-2 border-blue-200 dark:border-orange-700 shadow-2xl animate-fadeIn">
                         <div className="overflow-x-auto">
-                          <DataTable columns={columns} data={getFilteredStories(tab.status).map((story) => ({
+                          <DataTable
+                            columns={columns}
+                            data={getFilteredStories(tab.status).map((story) => ({
                             ...story,
-                            updatedAt: <span className="text-blue-500 dark:text-blue-300 font-mono text-base">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
+                              updatedAt: <span className="text-blue-500 dark:text-blue-300 font-mono text-base">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
                             actions: (
-                              <div className="flex gap-2">
-                                <button
-                                  className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1"
-                                  title="View"
-                                  onClick={() => navigate(`/story/${story.id}`)}
-                                >
-                                  <FiEye /> View
-                                </button>
-                                <button
-                                  className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition flex items-center gap-1"
-                                  title="Preview"
-                                  onClick={() => setPreview(story)}
-                                >
-                                  <FiEyeOff /> Preview
-                                </button>
-                                <button
-                                  className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-1"
-                                  title="Delete"
-                                  onClick={() => { setSelected(story); setShowDelete(true); }}
-                                >
-                                  <FiTrash2 /> Delete
-                                </button>
-                              </div>
-                            ),
-                          }))} />
+                                <div className="flex gap-2">
+                                  <button
+                                    className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1"
+                                    title="View"
+                                    onClick={() => navigate(`/story/${story.id}`)}
+                                  >
+                                    <FiEye /> View
+                                  </button>
+                                  <button
+                                    className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition flex items-center gap-1"
+                                    title="Preview"
+                                    onClick={() => setPreview(story)}
+                                  >
+                                    <FiEyeOff /> Preview
+                                  </button>
+                                  <button
+                                    className="p-2 rounded bg-red-600 text-white hover:bg-red-700 transition flex items-center justify-center shadow border border-red-700 focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    title="Delete"
+                                    aria-label="Delete"
+                                    onClick={() => { setSelected(story); setShowDelete(true); }}
+                                  >
+                                    <FiTrash2 size={22} />
+                                  </button>
+                                </div>
+                              ),
+                            }))}
+                            onBatchDelete={handleBatchDelete}
+                          />
                         </div>
                       </Card>
                     </>

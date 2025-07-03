@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { FiTrash2 } from 'react-icons/fi';
 
 interface DataTableProps {
   columns: { label: string; key: string }[];
   data: Record<string, any>[];
+  onBatchDelete?: (selectedIndexes: number[]) => void;
 }
 
 // DataTable component for displaying tabular data, accessible and responsive
-export const DataTable: React.FC<DataTableProps> = ({ columns, data }) => {
+export const DataTable: React.FC<DataTableProps> = ({ columns, data, onBatchDelete }) => {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
   const handleSelectRow = (idx: number) => {
@@ -57,8 +59,7 @@ export const DataTable: React.FC<DataTableProps> = ({ columns, data }) => {
           <div className="sticky top-0 z-20 flex items-center gap-4 px-4 py-2 bg-blue-50 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-orange-700 animate-fadeIn">
             <span className="font-semibold text-blue-700 dark:text-orange-200">{selectedRows.length} selected</span>
             <button className="text-blue-600 dark:text-orange-400 hover:underline" onClick={() => setSelectedRows([])}>Clear</button>
-            <button className="text-red-600 dark:text-pink-400 hover:underline">Delete</button>
-            <button className="text-blue-600 dark:text-orange-400 hover:underline">Export</button>
+            <button className="text-red-600 dark:text-pink-400 hover:underline flex items-center gap-1" onClick={() => onBatchDelete && onBatchDelete(selectedRows)}><FiTrash2 /> Delete</button>
           </div>
         )}
         <table className="min-w-full text-xs">
@@ -114,11 +115,12 @@ export const DataTable: React.FC<DataTableProps> = ({ columns, data }) => {
                   {columns.map((col) => {
                     // Hide 'Author' and 'Last Updated' on mobile
                     const hideOnMobile = col.key === 'author' || col.key === 'updated';
+                    const isActions = col.key === 'actions';
                     return (
                       <td
                         key={col.key}
-                        className={`px-2 py-1 border-b border-blue-50 dark:border-blue-900 truncate ${hideOnMobile ? 'hidden md:table-cell' : ''}`}
-                        style={{ maxWidth: 120 }}
+                        className={`px-2 py-1 border-b border-blue-50 dark:border-blue-900 ${hideOnMobile ? 'hidden md:table-cell' : ''} ${isActions ? '' : 'truncate'}`}
+                        style={isActions ? { minWidth: 160, maxWidth: 220 } : { maxWidth: 120 }}
                       >
                         {row[col.key]}
                       </td>
