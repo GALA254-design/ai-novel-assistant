@@ -12,8 +12,8 @@ const VerifyEmail: React.FC = () => {
     if (ok) setResent(true);
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
-      <div className="bg-white/80 dark:bg-blue-950/80 p-8 rounded-xl shadow-lg w-full max-w-md flex flex-col gap-4 items-center">
+    <div className="w-screen min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] flex flex-col items-center justify-center">
+      <div className="w-full max-w-lg mx-auto p-4 md:p-8 flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold mb-2 text-center">Verify Your Email</h2>
         <p className="text-center text-sm text-gray-600 dark:text-gray-300 mb-2">
           A verification email has been sent to your address. Please check your inbox and click the link to verify your account.<br />
