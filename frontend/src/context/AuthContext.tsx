@@ -49,7 +49,7 @@ setPersistence(auth, browserLocalPersistence);
 // Define the AuthProvider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -61,16 +61,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     photoURL: fbUser.photoURL,
   });
 
-  // Listen for auth state changes
+  // Listen for auth state changes, but only after persistence is set
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        setUser(mapUser(fbUser));
-      } else {
-        setUser(null);
-      }
+    let unsubscribe: (() => void) | undefined;
+    setLoading(true);
+    setPersistence(auth, browserLocalPersistence).then(() => {
+      unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+        if (fbUser) {
+          setUser(mapUser(fbUser));
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      });
     });
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   function getFriendlyAuthError(error: any, context: 'login' | 'register'): string {
