@@ -17,6 +17,7 @@ import Recover from './pages/Recover';
 import VerifyEmail from './pages/VerifyEmail';
 import NewStory from './pages/NewStory';
 import StoryView from './pages/StoryView';
+import Welcome from './pages/Welcome';
 import './App.css';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -36,16 +37,16 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
-        <Layout>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/recover" element={<Recover />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/help" element={<Help />} />
-            {/* Protected routes */}
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Routes>
+          {/* Public routes (no Layout/sidebar) */}
+          <Route path="/" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/recover" element={<Recover />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/help" element={<Help />} />
+          {/* Protected and main app routes (with Layout/sidebar) */}
+          <Route element={<Layout />}>
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
             <Route path="/new-story" element={<PrivateRoute><NewStory /></PrivateRoute>} />
             <Route path="/editor" element={<PrivateRoute><StoryEditor /></PrivateRoute>} />
@@ -55,9 +56,9 @@ const App: React.FC = () => {
             <Route path="/agents" element={<PrivateRoute><AgentManager /></PrivateRoute>} />
             <Route path="/analytics" element={<PrivateRoute><AnalyticsDashboard /></PrivateRoute>} />
             <Route path="/story/:projectId" element={<PrivateRoute><StoryView /></PrivateRoute>} />
-            <Route path="*" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          </Routes>
-        </Layout>
+            <Route path="*" element={<Welcome />} />
+          </Route>
+        </Routes>
       </AuthProvider>
     </Router>
   );

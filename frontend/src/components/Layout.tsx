@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, Outlet } from 'react-router-dom';
 import { FiMenu, FiHome, FiEdit, FiUser, FiLogOut, FiBell, FiSettings, FiPlus, FiSearch, FiZap, FiBarChart2, FiInfo } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './ui/Avatar';
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const Layout: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
@@ -171,7 +171,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <main className="flex-1 w-full p-0 sm:p-0 md:p-0 flex flex-col gap-8 transition-all duration-300 min-h-[calc(100vh-72px)]">
           {/* Main content card */}
           <div className="w-full flex flex-col gap-8 min-h-full">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createProject, addChapter } from '../services/storyService';
 import { FiX } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
+import RequireAuthModal from '../components/ui/RequireAuthModal';
 
 const genres = ['Any', 'Fantasy', 'Sci-Fi', 'Mystery', 'Romance', 'Horror', 'Adventure'];
 const tones = ['Any', 'Serious', 'Humorous', 'Dramatic', 'Inspiring', 'Dark', 'Lighthearted'];
@@ -49,6 +50,7 @@ const NewStory: React.FC = () => {
   const [chapters, setChapters] = useState(1);
   // Remove metaComplete and Story Info form, move title input to generator form
   const [title, setTitle] = useState('');
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -136,114 +138,126 @@ const NewStory: React.FC = () => {
     navigate('/dashboard');
   };
 
+  // Example usage in a handler:
+  const handleCreateStory = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    // ... rest of the create story logic ...
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] flex flex-col items-center justify-center p-4 animate-fadeIn relative">
-      {/* Exit Icon */}
-      <button
-        className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 shadow hover:bg-blue-100 dark:hover:bg-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all duration-200"
-        aria-label="Exit New Story"
-        onClick={handleCancel}
-      >
-        <FiX size={28} className="text-blue-700 dark:text-orange-300" />
-      </button>
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-8 relative">
-        {/* Story Generator Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col gap-6 border border-blue-100 dark:border-blue-900 w-full px-4 py-6 animate-fadeIn"
-          aria-label="Story Generator"
-          style={{ minHeight: '350px' }}
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] flex flex-col items-center justify-center p-4 animate-fadeIn relative">
+        {/* Exit Icon */}
+        <button
+          className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 shadow hover:bg-blue-100 dark:hover:bg-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all duration-200"
+          aria-label="Exit New Story"
+          onClick={handleCancel}
         >
-          <h2 className="text-2xl font-bold text-blue-700 dark:text-orange-300 mb-2">AI Story Generator</h2>
-          <label className="font-medium text-blue-700 dark:text-orange-300">Title</label>
-          <input
-            type="text"
-            className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
-            placeholder="Title (required)"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            required
-          />
-          <label className="font-medium text-blue-700 dark:text-orange-300">Prompt</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {aiPromptExamples.map((ex, i) => (
-              <button
-                key={i}
-                type="button"
-                className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-orange-200 hover:bg-blue-200 dark:hover:bg-blue-800 text-xs font-medium shadow transition-all duration-200"
-                onClick={() => setPrompt(ex)}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
-            placeholder="Describe your story idea or select a prompt example..."
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            required
-          />
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Genre</label>
-              <select
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
-                value={genre}
-                onChange={e => setGenre(e.target.value)}
-              >
-                {genres.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Tone</label>
-              <select
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
-                value={tone}
-                onChange={e => setTone(e.target.value)}
-              >
-                {tones.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Chapters</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
-                value={chapters}
-                onChange={e => setChapters(Number(e.target.value))}
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="mt-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white shadow-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={loading}
+          <FiX size={28} className="text-blue-700 dark:text-orange-300" />
+        </button>
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-8 relative">
+          {/* Story Generator Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col gap-6 border border-blue-100 dark:border-blue-900 w-full px-4 py-6 animate-fadeIn"
+            aria-label="Story Generator"
+            style={{ minHeight: '350px' }}
           >
-            {loading ? 'Generating…' : 'Generate'}
-          </button>
-          {error && <div className="text-red-600 bg-red-50 dark:bg-red-900/40 rounded-lg px-4 py-2 font-medium text-center">{error}</div>}
-        </form>
-        {/* Result Modal */}
-        <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} title="Generated Story">
-          <div className="flex flex-col gap-2 h-full max-h-[80vh] w-full max-w-2xl mx-auto">
-            <div className="bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 mb-2 text-sm text-blue-700 dark:text-orange-200 font-medium shadow">
-              <div><span className="font-semibold">Title:</span> {title}</div>
-              <div><span className="font-semibold">Prompt:</span> {prompt}</div>
-              <div><span className="font-semibold">Genre:</span> {genre}</div>
-              <div><span className="font-semibold">Tone:</span> {tone}</div>
-              <div><span className="font-semibold">Chapters:</span> {chapters}</div>
+            <h2 className="text-2xl font-bold text-blue-700 dark:text-orange-300 mb-2">AI Story Generator</h2>
+            <label className="font-medium text-blue-700 dark:text-orange-300">Title</label>
+            <input
+              type="text"
+              className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
+              placeholder="Title (required)"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              required
+            />
+            <label className="font-medium text-blue-700 dark:text-orange-300">Prompt</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {aiPromptExamples.map((ex, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-orange-200 hover:bg-blue-200 dark:hover:bg-blue-800 text-xs font-medium shadow transition-all duration-200"
+                  onClick={() => setPrompt(ex)}
+                >
+                  {ex}
+                </button>
+              ))}
             </div>
-            <div className="whitespace-pre-line bg-blue-50 dark:bg-blue-950/60 rounded-lg px-4 py-4 text-lg text-blue-900 dark:text-blue-100 shadow-inner max-h-[60vh] overflow-y-auto border border-blue-200 dark:border-blue-800 flex-1">
-              {story}
+            <input
+              type="text"
+              className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
+              placeholder="Describe your story idea or select a prompt example..."
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              required
+            />
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Genre</label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                  value={genre}
+                  onChange={e => setGenre(e.target.value)}
+                >
+                  {genres.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Tone</label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                  value={tone}
+                  onChange={e => setTone(e.target.value)}
+                >
+                  {tones.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Chapters</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                  value={chapters}
+                  onChange={e => setChapters(Number(e.target.value))}
+                />
+              </div>
             </div>
-          </div>
-        </Modal>
+            <button
+              type="submit"
+              className="mt-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white shadow-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={loading}
+            >
+              {loading ? 'Generating…' : 'Generate'}
+            </button>
+            {error && <div className="text-red-600 bg-red-50 dark:bg-red-900/40 rounded-lg px-4 py-2 font-medium text-center">{error}</div>}
+          </form>
+          {/* Result Modal */}
+          <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} title="Generated Story">
+            <div className="flex flex-col gap-2 h-full max-h-[80vh] w-full max-w-2xl mx-auto">
+              <div className="bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2 mb-2 text-sm text-blue-700 dark:text-orange-200 font-medium shadow">
+                <div><span className="font-semibold">Title:</span> {title}</div>
+                <div><span className="font-semibold">Prompt:</span> {prompt}</div>
+                <div><span className="font-semibold">Genre:</span> {genre}</div>
+                <div><span className="font-semibold">Tone:</span> {tone}</div>
+                <div><span className="font-semibold">Chapters:</span> {chapters}</div>
+              </div>
+              <div className="whitespace-pre-line bg-blue-50 dark:bg-blue-950/60 rounded-lg px-4 py-4 text-lg text-blue-900 dark:text-blue-100 shadow-inner max-h-[60vh] overflow-y-auto border border-blue-200 dark:border-blue-800 flex-1">
+                {story}
+              </div>
+            </div>
+          </Modal>
+        </div>
       </div>
-    </div>
+      <RequireAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+    </>
   );
 };
 
