@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
+import { db } from '../firebase';
+import { collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
+import { FaUserCircle } from 'react-icons/fa';
 
 // Simple star rating component
 const StarRating: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => (
@@ -48,25 +51,43 @@ const Feedback: React.FC = () => {
   const [form, setForm] = useState({ name: '', feedback: '' });
   const [star, setStar] = useState(0);
   const [thumb, setThumb] = useState<'up' | 'down' | null>(null);
-  const [comments, setComments] = useState<string[]>([]);
+  const [comments, setComments] = useState<{ comment: string; createdAt: any; name?: string }[]>([]);
   const [comment, setComment] = useState('');
 
+  // Load comments from Firestore on mount
+  useEffect(() => {
+    const fetchComments = async () => {
+      const qSnap = await getDocs(query(collection(db, 'feedbackComments'), orderBy('createdAt', 'desc')));
+      setComments(qSnap.docs.map(doc => doc.data() as { comment: string; createdAt: any; name?: string }));
+    };
+    fetchComments();
+  }, []);
+
   // Handle feedback form submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Feedback submitted! Thank you!', 'success');
+    await addDoc(collection(db, 'feedback'), {
+      name: form.name,
+      feedback: form.feedback,
+      star,
+      thumb,
+      createdAt: Timestamp.now(),
+    });
     setForm({ name: '', feedback: '' });
     setStar(0);
     setThumb(null);
   };
 
   // Handle comment submit
-  const handleComment = (e: React.FormEvent) => {
+  const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim()) {
-      setComments((prev) => [...prev, comment.trim()]);
+      await addDoc(collection(db, 'feedbackComments'), {
+        comment: comment.trim(),
+        createdAt: Timestamp.now(),
+      });
+      setComments((prev) => [...prev, { comment: comment.trim(), createdAt: Timestamp.now() }]);
       setComment('');
-      showToast('Comment submitted!', 'success');
     }
   };
 
@@ -74,7 +95,8 @@ const Feedback: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full max-w-lg mx-auto p-4 md:p-8 flex flex-col items-center justify-center">
         <h2 className="text-2xl sm:text-3xl font-heading font-bold mb-4 sm:mb-6 text-center text-gray-900 dark:text-gray-100">User Feedback</h2>
-        <Card className="p-4 sm:p-6">
+        <Card className="p-4 sm:p-6 mb-8">
+          <h3 className="text-lg font-bold mb-4 text-blue-700 dark:text-orange-300 border-b border-blue-100 dark:border-blue-900 pb-2">Submit Feedback</h3>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
               label="Your Name (optional)"
@@ -96,14 +118,16 @@ const Feedback: React.FC = () => {
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
               <span className="font-medium text-gray-800 dark:text-gray-200">Rate:</span>
-              <StarRating value={star} onChange={setStar} />
-              <ThumbsRating value={thumb} onChange={setThumb} />
+              <div className="flex items-center gap-2">
+                <StarRating value={star} onChange={setStar} />
+                <ThumbsRating value={thumb} onChange={setThumb} />
+              </div>
             </div>
-            <Button type="submit" variant="primary" className="w-full py-3 text-base">Submit Feedback</Button>
+            <Button type="submit" variant="primary" className="w-full py-3 text-base mt-2">Submit Feedback</Button>
           </form>
         </Card>
         <Card className="p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-bold mb-2 dark:text-gray-100 text-center">Comments & Suggestions</h3>
+          <h3 className="text-lg sm:text-xl font-bold mb-4 text-blue-700 dark:text-orange-300 border-b border-blue-100 dark:border-blue-900 pb-2 text-center">Comments & Suggestions</h3>
           <form className="flex flex-col sm:flex-row gap-2 mb-4" onSubmit={handleComment}>
             <input
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors duration-300"
@@ -113,11 +137,30 @@ const Feedback: React.FC = () => {
             />
             <Button type="submit" variant="secondary" className="w-full sm:w-auto py-2 text-base">Send</Button>
           </form>
-          <ul className="space-y-2">
-            {comments.map((c, i) => (
-              <li key={i} className="bg-gray-100 dark:bg-gray-700 rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100">{c}</li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-3">
+            {comments.length === 0 ? (
+              <div className="text-gray-400 text-center">No comments yet.</div>
+            ) : (
+              comments.map((c, i) => (
+                <Card key={i} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 border border-blue-100 dark:border-blue-900 shadow-none">
+                  <div className="flex-shrink-0">
+                    {c.name ? (
+                      <div className="w-10 h-10 rounded-full bg-blue-200 dark:bg-blue-900 flex items-center justify-center text-lg font-bold text-blue-700 dark:text-orange-300">
+                        {c.name[0].toUpperCase()}
+                      </div>
+                    ) : (
+                      <FaUserCircle className="w-10 h-10 text-blue-300 dark:text-blue-700" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-blue-700 dark:text-orange-300 mb-1">{c.name || 'Anonymous'}</div>
+                    <div className="text-gray-800 dark:text-gray-100 mb-1">{c.comment}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{c.createdAt?.toDate ? c.createdAt.toDate().toLocaleString() : ''}</div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
         </Card>
       </div>
     </div>

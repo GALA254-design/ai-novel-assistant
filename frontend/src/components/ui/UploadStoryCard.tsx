@@ -10,9 +10,10 @@ import { extractPdfText } from '../../services/pdfService';
 
 interface UploadStoryCardProps {
   onUpload?: (text: string, file: File) => Promise<void>;
+  onStoryExtracted?: (storyText: string) => void;
 }
 
-const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
+const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtracted }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [dragActive, setDragActive] = useState(false);
@@ -37,7 +38,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
           text = await extractPdfText(file);
         } catch (err) {
           console.error('PDF extraction error:', err);
-          setError('Unsupported or unreadable file format (PDF). You can manually paste the text below.');
+          setError('PDF cannot be read. Please use a text file or copy-paste your story to continue.');
           setShowManualEntry(true);
           setFile(file);
           setLoading(false);
@@ -61,6 +62,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
             text = e.target?.result as string;
             setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
             setLoading(false);
+            if (onStoryExtracted) onStoryExtracted(text);
           };
           reader.onerror = () => {
             setError('Unsupported or unreadable file format (TXT).');
@@ -81,31 +83,9 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload }) => {
       }
       if (text) {
         setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
-        // Immediately create project and add chapter
-        if (user) {
-          const defaultMeta = {
-            title: file.name.replace(/\.(pdf|docx|txt)$/i, ''),
-            genre: '',
-            description: '',
-            coverImage: '',
-            status: 'Draft' as const,
-          };
-          setLoading(true);
-          try {
-            const projectId = await createProject(user.uid, defaultMeta);
-            await addChapter(user.uid, projectId, {
-              title: 'Chapter 1',
-              content: text,
-              chapterNumber: 1,
-            });
-            setFile(null);
-            setPreview('');
-            navigate(`/editor/${projectId}`);
-          } catch (err) {
-            setError('Could not create/save story. Please try again.');
-          }
-          setLoading(false);
-        }
+        if (onStoryExtracted) onStoryExtracted(text);
+        setLoading(false);
+        return;
       }
     } catch (e) {
       setError('Failed to read file.');

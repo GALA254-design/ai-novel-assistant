@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loader from '../components/ui/Loader';
@@ -16,6 +16,7 @@ const StoryView: React.FC = () => {
   const { user } = useAuth();
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [project, setProject] = useState<Project | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,9 @@ const StoryView: React.FC = () => {
   const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
   const [chapterEditMode, setChapterEditMode] = useState(false);
   const [chapterForm, setChapterForm] = useState<{ title: string; content: string }>({ title: '', content: '' });
+  const passedStoryText = location.state?.storyText || '';
+  const [storyText, setStoryText] = useState<string>(passedStoryText);
+  const [chaptersParsed, setChaptersParsed] = useState<string[]>([]);
 
   useEffect(() => {
     if (user && projectId) {
@@ -66,6 +70,14 @@ const StoryView: React.FC = () => {
     }
   }, [selectedChapterIndex, chapters]);
 
+  useEffect(() => {
+    if (passedStoryText) {
+      // Optional: parse chapters if the story uses 'Chapter X:'
+      const chapters = passedStoryText.split(/Chapter \d+:/i).filter(Boolean).map((c, i) => `Chapter ${i + 1}:${c}`);
+      setChaptersParsed(chapters.length > 1 ? chapters : []);
+    }
+  }, [passedStoryText]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -81,6 +93,7 @@ const StoryView: React.FC = () => {
         });
         setStory({ ...story, ...form });
         showToast('Story updated!', 'success');
+        navigate('/dashboard', { state: { refresh: true } });
       } else if (project) {
         await updateProject(user.uid, project.id!, {
           title: form.title,
@@ -90,6 +103,7 @@ const StoryView: React.FC = () => {
         });
         setProject({ ...project, ...form });
         showToast('Project updated!', 'success');
+        setEditMode(false);
       }
       setEditMode(false);
     } catch (err) {
@@ -136,6 +150,24 @@ const StoryView: React.FC = () => {
     showToast('Chapter updated!', 'success');
   };
 
+  const fetchStoryFromN8n = async () => {
+    try {
+      const response = await fetch('https://your-n8n-webhook-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: 'Your prompt here' }),
+      });
+      const blob = await response.blob();
+      const text = await blob.text();
+      setStoryText(text);
+      // Optional: parse chapters if the story uses 'Chapter X:'
+      const chapters = text.split(/Chapter \d+:/i).filter(Boolean).map((c, i) => `Chapter ${i + 1}:${c}`);
+      setChaptersParsed(chapters.length > 1 ? chapters : []);
+    } catch (err) {
+      setStoryText('Failed to fetch story from n8n.');
+    }
+  };
+
   if (loading) return <Loader />;
   if (!project && !story) return <div className="p-8 text-center text-red-600">Project or Story not found or you do not have access.</div>;
 
@@ -146,11 +178,11 @@ const StoryView: React.FC = () => {
           <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4">&larr; Back to Dashboard</Button>
           <Card className="mb-6 p-6 flex flex-col gap-4">
             <div className="flex gap-2 mb-2">
-              <Button variant="primary" onClick={() => {
+              <Button variant="secondary" onClick={() => {
                 const blob = new Blob([story.content], { type: 'text/plain;charset=utf-8' });
                 saveAs(blob, `${story.title || 'story'}.txt`);
-              }}>Export TXT</Button>
-              <Button variant="primary" onClick={() => {
+              }}>Export as TXT</Button>
+              <Button variant="secondary" onClick={() => {
                 const doc = new Document({
                   sections: [
                     {
@@ -170,8 +202,8 @@ const StoryView: React.FC = () => {
                 Packer.toBlob(doc).then(blob => {
                   saveAs(blob, `${story.title || 'story'}.docx`);
                 });
-              }}>Export DOCX</Button>
-              <Button variant="primary" onClick={() => {
+              }}>Export as DOCX</Button>
+              <Button variant="secondary" onClick={() => {
                 const doc = new jsPDF();
                 doc.setFontSize(16);
                 doc.text(story.title || '', 10, 20);
@@ -179,7 +211,10 @@ const StoryView: React.FC = () => {
                 const splitText = doc.splitTextToSize(story.content || '', 180);
                 doc.text(splitText, 10, 30);
                 doc.save(`${story.title || 'story'}.pdf`);
-              }}>Export PDF</Button>
+              }}>Export as PDF</Button>
+              {editMode && (
+                <Button variant="primary" onClick={handleSave}>Save Story</Button>
+              )}
             </div>
             {editMode ? (
               <>
@@ -226,6 +261,21 @@ const StoryView: React.FC = () => {
               </>
             )}
           </Card>
+          {storyText && (
+            <Card className="mb-6 p-6 flex flex-col gap-4">
+              <h2 className="text-2xl font-bold mb-2">Generated Story</h2>
+              {chaptersParsed.length > 0 ? (
+                chaptersParsed.map((chapter, idx) => (
+                  <div key={idx} className="mb-4">
+                    <h3 className="text-lg font-semibold mb-1">{chapter.split(':')[0]}</h3>
+                    <pre className="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-2 rounded">{chapter.slice(chapter.indexOf(':') + 1)}</pre>
+                  </div>
+                ))
+              ) : (
+                <pre className="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-2 rounded">{storyText}</pre>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     );

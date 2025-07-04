@@ -14,12 +14,7 @@ export default defineConfig({
       '28a7-41-90-184-83.ngrok-free.app', // Your specific ngrok URL
     ],
     proxy: {
-<<<<<<< HEAD
       '/api': 'http://localhost:8000',
-    },
-  }
-})
-=======
       // Proxy to bypass CORS for story generation
       '/api/story': {
         target: 'https://n8nromeo123987.app.n8n.cloud',
@@ -27,7 +22,5 @@ export default defineConfig({
         rewrite: path => path.replace(/^\/api\/story/, '/webhook/ultimate-agentic-novel'),
       },
     },
-  },
+  }
 });
-
->>>>>>> 3e3e879f518c32329bc841962304115b9482af36

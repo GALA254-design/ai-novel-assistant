@@ -12,6 +12,14 @@ const lengths = [
   'Long',
 ];
 
+const promptExamples = [
+  'A detective wakes up with no memory in a city where no one can lie.',
+  'A dragon who wants to be a poet, not a fighter.',
+  'A romance between two rival AI assistants.',
+  'A spaceship crew discovers a planet where time runs backward.',
+  'A child finds a door to another world in their school library.'
+];
+
 const StoryGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [genre, setGenre] = useState('Any');
@@ -32,14 +40,14 @@ const StoryGenerator: React.FC = () => {
     return () => window.removeEventListener('use-prompt-template', handler as EventListener);
   }, []);
 
-<<<<<<< HEAD
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setStory('');
     try {
-      const response = await generateStory({ prompt, genre, tone, chapters });
+      const fullPrompt = `Title: ${prompt}\nGenre: ${genre}\nTone: ${tone}\nChapters: ${chapters}`;
+      const response = await generateStory({ prompt: fullPrompt, genre, tone });
       setStory(response.story || '');
       setShowResultModal(true);
     } catch (err: any) {
@@ -48,51 +56,6 @@ const StoryGenerator: React.FC = () => {
       setLoading(false);
     }
   };
-=======
-  // storyService.ts
-
-// export async function generateStory({ prompt, genre, tone }) {
-//   const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ai-novel-generator", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       title: prompt,
-//       genre,
-//       tone,
-//     }),
-//   });
-
-//   if (!response.ok) {
-//     throw new Error("Failed to generate story from n8n.");
-//   }
-
-//   const blob = await response.blob(); // because your n8n workflow returns a file
-//   return {
-//     story: await blob.text(), // extract the text from the file
-//     fileUrl: URL.createObjectURL(blob), // optional: to trigger download
-//   };
-// }
-
-const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  setStory('');
-
-  try {
-    const response = await generateStory({ prompt, genre, tone });
-    setStory(response.story || '');
-    setShowResultModal(true);
-  } catch (err: any) {
-    setError(typeof err === 'string' ? err : 'Story generation failed');
-  } finally {
-    setLoading(false);
-  }
-};
-
->>>>>>> 3e3e879f518c32329bc841962304115b9482af36
 
   return (
     <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch min-h-0 w-full mt-2 sm:mt-4 max-w-3xl mx-auto">
@@ -104,6 +67,18 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         style={{ minHeight: '350px' }}
       >
         <label className="font-medium text-blue-700 dark:text-orange-300">Prompt</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {promptExamples.map((ex, i) => (
+            <button
+              key={i}
+              type="button"
+              className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-orange-200 hover:bg-blue-200 dark:hover:bg-blue-800 text-xs font-medium shadow transition-all duration-200"
+              onClick={() => setPrompt(ex)}
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
         <input
           type="text"
           className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"

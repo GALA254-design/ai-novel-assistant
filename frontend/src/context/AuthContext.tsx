@@ -12,7 +12,7 @@ import {
   signInWithPopup,
   User as FirebaseUser,
   sendPasswordResetEmail,
-  sendEmailVerification
+  sendEmailVerification,
 } from 'firebase/auth';
 
 // Define the shape of your user data (adjust as per your backend response)
@@ -35,6 +35,7 @@ interface AuthContextType {
   refreshUser: () => void;
   resetPassword: (email: string) => Promise<boolean>;
   resendVerificationEmail: () => Promise<boolean>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 // Create the context
@@ -77,9 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return 'Please enter a valid email address.';
       case 'auth/user-not-found':
       case 'auth/wrong-password':
-        return context === 'login'
-          ? 'Incorrect email or password. Please try again.'
-          : 'No account found with this email.';
+        return 'Incorrect email or password. Please check your credentials and try again.';
+      case 'auth/invalid-credential':
+        return 'Invalid login credentials. Please check your email and password and try again.';
       case 'auth/weak-password':
         return 'Password should be at least 6 characters.';
       case 'auth/popup-closed-by-user':
@@ -193,9 +194,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
+    // Optionally, update Firestore here if needed
+  };
+
   // Provide the context values to children components
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, loginWithGoogle, logout, refreshUser, resetPassword, resendVerificationEmail }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, loginWithGoogle, logout, refreshUser, resetPassword, resendVerificationEmail, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

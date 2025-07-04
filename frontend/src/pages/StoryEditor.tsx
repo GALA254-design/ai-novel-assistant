@@ -8,7 +8,9 @@ import { HiOutlineBold, HiOutlineItalic, HiOutlineUnderline, HiOutlineSparkles }
 import { FiFileText, FiDownload, FiZap, FiPlus } from 'react-icons/fi';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { updateProject, updateChapter, getChapters } from '../services/storyService';
+import { updateProject, updateChapter, getChapters, createStory } from '../services/storyService';
+import jsPDF from 'jspdf';
+import { saveAs } from 'file-saver';
 
 const promptTemplates = [
   'Write a dramatic opening scene.',
@@ -17,17 +19,26 @@ const promptTemplates = [
   'Summarize the story so far in one paragraph.',
 ];
 
+const genreOptions = [
+  'Fantasy', 'Science Fiction', 'Mystery', 'Romance', 'Thriller', 'Nonfiction', 'Other'
+];
+const toneOptions = [
+  'Serious', 'Humorous', 'Dramatic', 'Light', 'Dark', 'Other'
+];
+
 // Enhanced StoryEditor page with Card, Input, Button, and Modal
 const StoryEditor: React.FC = () => {
-  const [form, setForm] = useState({ title: '', content: '' });
+  const [form, setForm] = useState({ title: '', content: '', genre: '', tone: '' });
   const [showModal, setShowModal] = useState(false);
   const [exporting, setExporting] = useState<'pdf' | 'txt' | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'write' | 'ai' | 'preview'>('write');
   const { user } = useAuth();
   const { projectId } = useParams();
   const [chapters, setChapters] = useState<any[]>([]);
   const [chapterId, setChapterId] = useState<string | null>(null);
+
+  // Add ref for textarea
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Fetch chapters on load
   useEffect(() => {
@@ -47,25 +58,81 @@ const StoryEditor: React.FC = () => {
   // Handle form submit (simulate save)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (user && projectId && form.title) {
-      await updateProject(user.uid, projectId, { title: form.title });
-      if (chapterId) {
-        await updateChapter(user.uid, projectId, chapterId, { content: form.content });
-      }
+    if (user && form.title && form.content) {
+      await createStory({
+        title: form.title,
+        content: form.content,
+        genre: form.genre,
+        tone: form.tone,
+        authorId: user.uid,
+        authorName: user.displayName || '',
+      });
     setShowModal(true);
     }
   };
 
   // Handle export (simulate)
   const handleExport = (type: 'pdf' | 'txt') => {
-    setExporting(type);
-    setTimeout(() => setExporting(null), 1500);
+    if (type === 'pdf') {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text(form.title || '', 10, 20);
+      doc.setFontSize(12);
+      const splitText = doc.splitTextToSize(form.content || '', 180);
+      doc.text(splitText, 10, 30);
+      doc.save(`${form.title || 'story'}.pdf`);
+    } else if (type === 'txt') {
+      const blob = new Blob([form.content], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, `${form.title || 'story'}.txt`);
+    }
   };
 
   // Simulate loading/generation
   const handleGenerate = () => {
     setLoading(true);
     setTimeout(() => setLoading(false), 2000);
+  };
+
+  // Formatting helpers
+  const applyFormat = (tag: 'bold' | 'italic' | 'underline') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const [start, end] = [textarea.selectionStart, textarea.selectionEnd];
+    let before = form.content.slice(0, start);
+    let selected = form.content.slice(start, end);
+    let after = form.content.slice(end);
+    let open = '', close = '';
+    if (tag === 'bold') { open = '**'; close = '**'; }
+    if (tag === 'italic') { open = '*'; close = '*'; }
+    if (tag === 'underline') { open = '<u>'; close = '</u>'; }
+    // If already wrapped, unwrap
+    if (selected.startsWith(open) && selected.endsWith(close)) {
+      selected = selected.slice(open.length, selected.length - close.length);
+    } else {
+      selected = open + selected + close;
+    }
+    const newContent = before + selected + after;
+    setForm(f => ({ ...f, content: newContent }));
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + open.length, end + open.length);
+    }, 0);
+  };
+
+  // Refine with n8n
+  const handleRefine = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook-test/ultimate-agentic-novel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: 'Refine this story for me', story: form.content }),
+      });
+      const blob = await response.blob();
+      const refined = await blob.text();
+      setForm(f => ({ ...f, content: refined }));
+    } catch {}
+    setLoading(false);
   };
 
   // Word and character count
@@ -84,40 +151,78 @@ const StoryEditor: React.FC = () => {
           {/* Left: Editor with tabs */}
           <div className="md:w-3/4 flex-1 min-w-0">
             <Card className="p-0 overflow-hidden">
-              {/* Tabs */}
-              <div className="flex border-b border-blue-100 dark:border-blue-900">
-                <button onClick={() => setActiveTab('write')} className={`px-4 py-2 font-semibold ${activeTab === 'write' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400' : 'text-blue-700 dark:text-orange-300'}`}>Write</button>
-                <button onClick={() => setActiveTab('ai')} className={`px-4 py-2 font-semibold ${activeTab === 'ai' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400' : 'text-blue-700 dark:text-orange-300'}`}>AI Suggestions</button>
-                <button onClick={() => setActiveTab('preview')} className={`px-4 py-2 font-semibold ${activeTab === 'preview' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400' : 'text-blue-700 dark:text-orange-300'}`}>Preview</button>
-              </div>
-              {/* Tab content */}
-              {activeTab === 'write' && (
                 <form className="flex flex-col gap-6 p-6" onSubmit={handleSubmit}>
                   <Input
                     label="Title"
                     name="title"
                     value={form.title}
                     onChange={handleChange}
-                    onBlur={async () => {
-                      if (user && projectId && form.title) {
-                        await updateProject(user.uid, projectId, { title: form.title });
-                      }
+                  placeholder="Enter story title"
+                  required
+                />
+                <div>
+                  <label className="block font-medium text-gray-700 dark:text-gray-200 mb-1">Genre</label>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                    value={genreOptions.includes(form.genre) ? form.genre : 'Other'}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setForm(f => ({ ...f, genre: value === 'Other' ? '' : value }));
                     }}
-                    placeholder="Enter story title"
+                    required
+                  >
+                    <option value="" disabled>Select genre</option>
+                    {genreOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                  {(!genreOptions.includes(form.genre) || form.genre === '') && (
+                    <input
+                      type="text"
+                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                      placeholder="Enter custom genre"
+                      value={form.genre}
+                      onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
+                      required
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block font-medium text-gray-700 dark:text-gray-200 mb-1">Tone</label>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                    value={toneOptions.includes(form.tone) ? form.tone : 'Other'}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setForm(f => ({ ...f, tone: value === 'Other' ? '' : value }));
+                    }}
+                    required
+                  >
+                    <option value="" disabled>Select tone</option>
+                    {toneOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                  {(!toneOptions.includes(form.tone) || form.tone === '') && (
+                    <input
+                      type="text"
+                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                      placeholder="Enter custom tone"
+                      value={form.tone}
+                      onChange={e => setForm(f => ({ ...f, tone: e.target.value }))}
                     required
                   />
+                  )}
+                </div>
                   {/* Toolbar */}
                   <div className="flex gap-2 mb-2 items-center">
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Bold" title="Bold (Ctrl+B)"><HiOutlineBold className="w-5 h-5" /></button>
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Italic" title="Italic (Ctrl+I)"><HiOutlineItalic className="w-5 h-5" /></button>
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Underline" title="Underline (Ctrl+U)"><HiOutlineUnderline className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Bold" title="Bold (Ctrl+B)" onClick={() => applyFormat('bold')}><HiOutlineBold className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Italic" title="Italic (Ctrl+I)" onClick={() => applyFormat('italic')}><HiOutlineItalic className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Underline" title="Underline (Ctrl+U)" onClick={() => applyFormat('underline')}><HiOutlineUnderline className="w-5 h-5" /></button>
                     <span className="mx-2 h-6 border-l border-blue-200 dark:border-blue-800" />
-                    <button type="button" className="p-2 rounded-xl bg-gradient-to-r from-pink-400 to-orange-400 text-white hover:from-pink-500 hover:to-orange-500 shadow transition-all duration-200" aria-label="Generate with AI" title="Generate with AI" onClick={handleGenerate}><HiOutlineSparkles className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-gradient-to-r from-pink-400 to-orange-400 text-white hover:from-pink-500 hover:to-orange-500 shadow transition-all duration-200" aria-label="Refine with AI" title="Refine with AI" onClick={handleRefine}><HiOutlineSparkles className="w-5 h-5" /></button>
                   </div>
                   {/* Editor area */}
                   <div className="relative">
                     <label className="block mb-1 font-medium text-gray-700 dark:text-gray-200 pl-1">Content</label>
                     <textarea
+                      ref={textareaRef}
                       name="content"
                       value={form.content}
                       onChange={handleChange}
@@ -147,17 +252,15 @@ const StoryEditor: React.FC = () => {
                       Export as TXT
                     </Button>
                   </div>
+                <div className="flex gap-2">
                   <Button type="submit" variant="primary">
                     Save Story
                   </Button>
+                  <Button type="button" variant="secondary" onClick={() => setForm({ title: '', content: '', genre: '', tone: '' })}>
+                    Clear
+                  </Button>
+                </div>
                 </form>
-              )}
-              {activeTab === 'ai' && (
-                <div className="p-6 text-center text-blue-700 dark:text-orange-300">AI Suggestions coming soon!</div>
-              )}
-              {activeTab === 'preview' && (
-                <div className="p-6 text-center text-blue-700 dark:text-orange-300">Preview coming soon!</div>
-              )}
             </Card>
           </div>
           {/* Right: Panels */}

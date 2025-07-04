@@ -47,7 +47,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           >
             <FiMenu size={24} />
           </button>
-          <h1 className="text-lg font-bold font-heading tracking-tight text-[#232946] dark:text-white whitespace-nowrap">AI Novel Assistant</h1>
+          <h1 className="text-lg font-bold font-heading tracking-tight text-[#232946] dark:text-white whitespace-nowrap">AI-NOVEL CRAFTER</h1>
           <span className="ml-1 px-2 py-0.5 text-xs rounded-xl font-semibold bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow">Beta</span>
           <div className="flex-1" />
           {user && (
@@ -59,16 +59,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
         <div className="flex items-center gap-2">
           {/* Notifications */}
-          {user && (
-            <button
-              className="relative w-9 h-9 flex items-center justify-center rounded-full border-2 border-blue-200 dark:border-blue-800 bg-white/70 dark:bg-blue-900/70 hover:bg-blue-100 dark:hover:bg-blue-800 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent shadow"
-              aria-label="Notifications"
-              onClick={() => setNotificationsOpen((o) => !o)}
-            >
-              <FiBell size={18} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-pink-500 rounded-full" />
-            </button>
-          )}
+          {/* Notification button removed as requested */}
           {/* Profile avatar as direct link */}
           {user && (
             <NavLink
@@ -157,7 +148,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               <nav className="flex flex-col gap-2 mt-16">
-                {filteredNavLinks.map((link) => {
+                {navLinks.map((link) => {
                   const Icon = link.icon;
                   return (
                     <NavLink

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -7,14 +7,12 @@ import { FiSettings, FiInfo } from 'react-icons/fi';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { updateUserProfile, fetchUserById } from '../services/api';
+import { db } from '../firebase';
+import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
 const tabLabels = [
   { label: 'Profile', key: 'profile' },
   { label: 'Story Generation', key: 'generation' },
-  { label: 'AI Agents', key: 'agents' },
-  { label: 'Export', key: 'export' },
-  { label: 'Notifications', key: 'notifications' },
-  { label: 'Privacy', key: 'privacy' },
 ];
 
 const Settings: React.FC = () => {
@@ -50,11 +48,43 @@ const Settings: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      getDoc(doc(db, 'userPreferences', user.uid)).then(snapshot => {
+        if (snapshot.exists()) {
+          setSettings(prev => ({ ...prev, ...snapshot.data() }));
+        }
+      });
+    }
+  }, [user]);
+
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveSettings = () => {
+  const handleProfileChange = async (key: string, value: any) => {
+    handleSettingChange(key, value);
+    if (!user) return;
+    if (key === 'displayName') {
+      await updateUser({ displayName: value });
+      await updateDoc(doc(db, 'users', user.uid), { displayName: value });
+    } else if (key === 'email') {
+      await updateUser({ email: value });
+      await updateDoc(doc(db, 'users', user.uid), { email: value });
+    } else if (key === 'bio') {
+      await updateDoc(doc(db, 'users', user.uid), { bio: value });
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!user) return;
+    await setDoc(doc(db, 'userPreferences', user.uid), {
+      defaultGenre: settings.defaultGenre,
+      defaultTone: settings.defaultTone,
+      defaultLength: settings.defaultLength,
+      autoSave: settings.autoSave,
+      saveInterval: settings.saveInterval,
+    }, { merge: true });
     showToast('Settings saved successfully', 'success');
   };
 
@@ -97,46 +127,19 @@ const Settings: React.FC = () => {
                     <Input
                       label="Display Name"
                       value={settings.displayName}
-                      onChange={async (e) => {
-                        handleSettingChange('displayName', e.target.value);
-                        setLoading(true);
-                        try {
-                          await updateUserProfile({ name: e.target.value });
-                          const updated = await fetchUserById(user.id);
-                          updateUser(updated);
-                        } catch {}
-                        setLoading(false);
-                      }}
+                      onChange={e => handleProfileChange('displayName', e.target.value)}
                     />
                     <Input
                       label="Email"
                       type="email"
                       value={settings.email}
-                      onChange={async (e) => {
-                        handleSettingChange('email', e.target.value);
-                        setLoading(true);
-                        try {
-                          await updateUserProfile({ email: e.target.value });
-                          const updated = await fetchUserById(user.id);
-                          updateUser(updated);
-                        } catch {}
-                        setLoading(false);
-                      }}
+                      onChange={e => handleProfileChange('email', e.target.value)}
                     />
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Bio</label>
                       <textarea
                         value={settings.bio || ''}
-                        onChange={async (e) => {
-                          handleSettingChange('bio', e.target.value);
-                          setLoading(true);
-                          try {
-                            await updateUserProfile({ bio: e.target.value });
-                            const updated = await fetchUserById(user.id);
-                            updateUser(updated);
-                          } catch {}
-                          setLoading(false);
-                        }}
+                        onChange={e => handleProfileChange('bio', e.target.value)}
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       />

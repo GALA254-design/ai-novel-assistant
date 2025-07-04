@@ -7,17 +7,19 @@ import { useToast } from '../components/ui/Toast';
 import { useAuth } from '../context/AuthContext';
 import { NavLink } from 'react-router-dom';
 import { FiEdit2, FiAward } from 'react-icons/fi';
-import { updateUserProfile, fetchUserById } from '../services/api';
+import { auth, db } from '../firebase';
+import { updateProfile, updateEmail } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const Profile: React.FC = () => {
-  const { showToast } = useToast();
   const { user, updateUser } = useAuth();
+  const { showToast } = useToast();
 
   const [profile, setProfile] = useState({
-    name: user?.name || '',
+    name: user?.displayName || '',
     email: user?.email || '',
-    bio: user?.bio || '',
-    avatar: user?.avatar || '',
+    bio: '', // Will be loaded from Firestore if needed
+    avatar: user?.photoURL || '',
     theme: 'auto',
   });
   const [password, setPassword] = useState({
@@ -32,13 +34,27 @@ const Profile: React.FC = () => {
 
   // Sync local profile state with user on mount and when user changes
   useEffect(() => {
-    setProfile({
-      name: user?.name || '',
-      email: user?.email || '',
-      bio: user?.bio || '',
-      avatar: user?.avatar || '',
-      theme: 'auto',
-    });
+    let isMounted = true;
+    const loadProfile = async () => {
+      let bio = '';
+      if (user) {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) {
+          bio = snap.data().bio || '';
+        }
+      }
+      if (isMounted) {
+        setProfile({
+          name: user?.displayName || '',
+          email: user?.email || '',
+          bio,
+          avatar: user?.photoURL || '',
+          theme: 'auto',
+        });
+      }
+    };
+    loadProfile();
+    return () => { isMounted = false; };
   }, [user]);
 
   if (!user) {
@@ -73,24 +89,31 @@ const Profile: React.FC = () => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      await updateUserProfile({
-        name: profile.name,
+      // Update Firebase Auth (displayName, photoURL, email)
+      if (auth.currentUser) {
+        if (profile.email !== user.email) {
+          await updateEmail(auth.currentUser, profile.email);
+        }
+        await updateProfile(auth.currentUser, {
+          displayName: profile.name,
+          photoURL: profile.avatar,
+        });
+      }
+      // Update Firestore profile (bio, avatar, etc.)
+      if (auth.currentUser) {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), {
+          displayName: profile.name,
+          email: profile.email,
+          bio: profile.bio,
+          photoURL: profile.avatar,
+        }, { merge: true });
+      }
+      // Update AuthContext for instant UI reflection
+      await updateUser({
+        displayName: profile.name,
         email: profile.email,
-        avatar: profile.avatar,
-        bio: profile.bio,
+        photoURL: profile.avatar,
       });
-      const updated = await fetchUserById(user.id);
-      updateUser(updated);
-      setProfile({
-        name: updated.name || '',
-        email: updated.email || '',
-        bio: updated.bio || '',
-        avatar: updated.avatar || '',
-        theme: 'auto',
-      });
-      showToast('Profile updated successfully!', 'success');
-    } catch (err) {
-      showToast('Failed to update profile', 'error');
     } finally {
       setLoading(false);
     }
@@ -109,10 +132,30 @@ const Profile: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       setAvatarLoading(true);
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setProfile(prev => ({ ...prev, avatar: event.target?.result as string }));
-        updateUser({ avatar: event.target?.result as string }); // Instant UI feedback
-        setAvatarLoading(false);
+      reader.onload = async (event) => {
+        const newAvatar = event.target?.result as string;
+        setProfile(prev => ({ ...prev, avatar: newAvatar }));
+        try {
+          if (auth.currentUser) {
+            await updateProfile(auth.currentUser, {
+              displayName: profile.name,
+              photoURL: newAvatar,
+            });
+            await setDoc(doc(db, 'users', auth.currentUser.uid), {
+              displayName: profile.name,
+              email: profile.email,
+              bio: profile.bio,
+              photoURL: newAvatar,
+            }, { merge: true });
+          }
+          await updateUser({
+            displayName: profile.name,
+            email: profile.email,
+            photoURL: newAvatar,
+          });
+        } finally {
+          setAvatarLoading(false);
+        }
       };
       reader.readAsDataURL(e.target.files[0]);
     }
@@ -125,7 +168,7 @@ const Profile: React.FC = () => {
         <div className="relative h-32 md:h-40 w-full rounded-2xl bg-gradient-to-r from-blue-400 to-pink-400 mb-8 flex items-end">
           <div className="absolute left-8 bottom-[-48px] md:bottom-[-56px] z-10">
             <div className="relative">
-              <Avatar src={profile.avatar || user?.avatar} name={profile.name} size={96} />
+              <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={96} />
               <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition" title="Upload new avatar">
                 <FiEdit2 />
                 <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
