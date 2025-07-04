@@ -22,7 +22,7 @@ const Help: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 dark:from-[#181c2a] dark:via-[#232946] dark:to-blue-950">
       <div className="w-full mx-auto p-4 md:p-8 md:max-w-5xl flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
-        <nav className="md:w-1/4 flex-shrink-0 flex md:flex-col gap-2 md:gap-4 mb-4 md:mb-0 sticky top-24 self-start">
+        <nav className="w-full md:w-1/4 flex-shrink-0 flex flex-row md:flex-col gap-2 md:gap-4 mb-4 md:mb-0 sticky top-24 self-start">
           {sections.map(s => (
             <button
               key={s.key}
@@ -35,8 +35,8 @@ const Help: React.FC = () => {
           ))}
         </nav>
         {/* Main content */}
-        <div className="flex-1 min-w-0">
-          <Card className="p-6">
+        <div className="flex-1 min-w-0 w-full">
+          <Card className="p-4 sm:p-6 w-full">
             <div className="mb-6 border-b border-blue-100 dark:border-blue-900 pb-4">
               <h1 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-1">Help & Support</h1>
               <p className="text-gray-600 dark:text-gray-300 text-base">Welcome to AI-NOVEL CRAFTER! Here you can find guides, FAQs, and support to help you get the most out of your experience.</p>

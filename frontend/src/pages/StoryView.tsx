@@ -175,7 +175,7 @@ const StoryView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] p-4">
         <div className="w-full max-w-4xl mx-auto">
-          <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4">&larr; Back to Dashboard</Button>
+          <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4 w-full sm:w-auto">&larr; Back to Dashboard</Button>
           <Card className="mb-6 p-6 flex flex-col gap-4">
             <div className="flex gap-2 mb-2">
               <Button variant="secondary" onClick={() => {
@@ -284,8 +284,8 @@ const StoryView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] p-4">
       <div className="w-full max-w-4xl mx-auto">
-        <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4">&larr; Back to Dashboard</Button>
-        <Card className="mb-6 p-6 flex flex-col md:flex-row gap-6 items-center">
+        <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4 w-full sm:w-auto">&larr; Back to Dashboard</Button>
+        <Card className="mb-6 p-4 sm:p-6 flex flex-col gap-4 w-full">
           {project.coverImage && (
             <img src={project.coverImage} alt="Cover" className="w-32 h-44 object-cover rounded-lg shadow" />
           )}

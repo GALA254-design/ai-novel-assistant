@@ -150,8 +150,8 @@ const StoryEditor: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-12 mt-4">
           {/* Left: Editor with tabs */}
           <div className="md:w-3/4 flex-1 min-w-0">
-            <Card className="p-0 overflow-hidden">
-                <form className="flex flex-col gap-6 p-6" onSubmit={handleSubmit}>
+            <Card className="p-0 overflow-hidden w-full">
+                <form className="flex flex-col gap-6 p-4 sm:p-6" onSubmit={handleSubmit}>
                   <Input
                     label="Title"
                     name="title"

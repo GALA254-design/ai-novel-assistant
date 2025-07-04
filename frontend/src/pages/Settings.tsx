@@ -18,7 +18,7 @@ const tabLabels = [
 const Settings: React.FC = () => {
   const { showToast } = useToast();
   const { theme, toggleTheme } = useTheme();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState(tabLabels[0].key);
   const [settings, setSettings] = useState({
     displayName: 'John Doe',
@@ -105,12 +105,12 @@ const Settings: React.FC = () => {
           {/* Left: Tabs and content */}
           <div className="flex-1 min-w-0">
             {/* Tabs with animated underline */}
-            <div className="flex border-b border-blue-100 dark:border-blue-900 mb-6">
+            <div className="flex flex-col sm:flex-row border-b border-blue-100 dark:border-blue-900 mb-6 gap-2 sm:gap-0">
               {tabLabels.map(tab => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`relative px-4 py-2 font-semibold transition-colors duration-200 ${activeTab === tab.key ? 'text-blue-700 dark:text-orange-300' : 'text-blue-700 dark:text-orange-300 opacity-70'}`}
+                  className={`w-full sm:w-auto px-4 py-3 font-semibold rounded-t-lg sm:rounded-t-none sm:rounded-l-lg text-base transition-colors duration-200 ${activeTab === tab.key ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400 bg-blue-50 dark:bg-blue-900' : 'text-blue-700 dark:text-orange-300 bg-transparent'}`}
                 >
                   {tab.label}
                   {activeTab === tab.key && (
@@ -120,7 +120,7 @@ const Settings: React.FC = () => {
               ))}
             </div>
             {/* Tab content in cards */}
-            <Card className="p-6">
+            <Card className="p-4 sm:p-6 w-full">
               {activeTab === 'profile' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -428,6 +428,20 @@ const Settings: React.FC = () => {
               </div>
             </Card>
           </div>
+        </div>
+        {/* Log Out button at the bottom */}
+        <div className="w-full flex justify-center mt-8">
+          <Button
+            variant="danger"
+            className="w-full max-w-xs py-3 text-lg font-bold shadow-lg bg-red-600 dark:bg-orange-500 hover:bg-red-700 dark:hover:bg-orange-600 transition-all duration-200"
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out?')) {
+                logout();
+              }
+            }}
+          >
+            Log Out
+          </Button>
         </div>
       </div>
     </div>

@@ -166,7 +166,7 @@ const Profile: React.FC = () => {
       <div className="w-full mx-auto p-4 md:p-8 md:max-w-4xl">
         {/* Cover image */}
         <div className="relative h-32 md:h-40 w-full rounded-2xl bg-gradient-to-r from-blue-400 to-pink-400 mb-8 flex items-end">
-          <div className="absolute left-8 bottom-[-48px] md:bottom-[-56px] z-10">
+          <div className="absolute left-1/2 md:left-8 bottom-[-48px] md:bottom-[-56px] z-10 transform -translate-x-1/2 md:translate-x-0">
             <div className="relative">
               <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={96} />
               <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition" title="Upload new avatar">
@@ -176,10 +176,10 @@ const Profile: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row gap-8 w-full mt-12">
+        <div className="flex flex-col md:flex-row gap-8 w-full mt-16 md:mt-12">
           {/* Left: Profile Card & Tabs */}
           <div className="w-full md:w-2/3">
-            <Card className="p-6 text-center md:text-left">
+            <Card className="p-4 sm:p-6 text-center md:text-left w-full">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{profile.name}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{profile.email}</p>
               <div className="mb-4 text-gray-600 dark:text-gray-300">{profile.bio}</div>
@@ -194,9 +194,9 @@ const Profile: React.FC = () => {
                 </div>
               </div>
               {/* Tabs */}
-              <div className="flex border-b border-blue-100 dark:border-blue-900 mb-4">
-                <button onClick={() => setActiveTab('personal')} className={`px-4 py-2 font-semibold ${activeTab === 'personal' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400' : 'text-blue-700 dark:text-orange-300'}`}>Personal Info</button>
-                <button onClick={() => setActiveTab('security')} className={`px-4 py-2 font-semibold ${activeTab === 'security' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400' : 'text-blue-700 dark:text-orange-300'}`}>Security</button>
+              <div className="flex flex-col sm:flex-row border-b border-blue-100 dark:border-blue-900 mb-4 gap-2 sm:gap-0">
+                <button onClick={() => setActiveTab('personal')} className={`w-full sm:w-auto px-4 py-3 font-semibold rounded-t-lg sm:rounded-t-none sm:rounded-l-lg text-base ${activeTab === 'personal' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400 bg-blue-50 dark:bg-blue-900' : 'text-blue-700 dark:text-orange-300 bg-transparent'}`}>Personal Info</button>
+                <button onClick={() => setActiveTab('security')} className={`w-full sm:w-auto px-4 py-3 font-semibold rounded-t-lg sm:rounded-t-none sm:rounded-l-lg text-base ${activeTab === 'security' ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400 bg-blue-50 dark:bg-blue-900' : 'text-blue-700 dark:text-orange-300 bg-transparent'}`}>Security</button>
               </div>
               {/* Tab content */}
               {activeTab === 'personal' && (
@@ -239,6 +239,21 @@ const Profile: React.FC = () => {
             </Card>
           </div>
         </div>
+      </div>
+      {/* Log Out button at the bottom */}
+      <div className="w-full flex justify-center mt-8">
+        <Button
+          variant="danger"
+          className="w-full max-w-xs py-3 text-lg font-bold shadow-lg bg-red-600 dark:bg-orange-500 hover:bg-red-700 dark:hover:bg-orange-600 transition-all duration-200"
+          onClick={() => {
+            if (window.confirm('Are you sure you want to log out?')) {
+              const { logout } = require('../context/AuthContext').useAuth();
+              logout();
+            }
+          }}
+        >
+          Log Out
+        </Button>
       </div>
     </div>
   );

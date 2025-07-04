@@ -47,24 +47,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           >
             <FiMenu size={24} />
           </button>
-          <h1 className="text-lg font-bold font-heading tracking-tight text-[#232946] dark:text-white whitespace-nowrap">AI-NOVEL CRAFTER</h1>
-          <span className="ml-1 px-2 py-0.5 text-xs rounded-xl font-semibold bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow">Beta</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2 flex-1">
+            <h1 className="text-lg font-bold font-heading tracking-tight text-[#232946] dark:text-white whitespace-nowrap">AI-NOVEL CRAFTER</h1>
+            <span className="ml-0 sm:ml-1 mt-1 sm:mt-0 px-2 py-0.5 text-xs rounded-xl font-semibold bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow sm:inline block text-center w-fit">Beta</span>
+          </div>
           <div className="flex-1" />
-          {user && (
-            <button onClick={logout} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors shadow md:hidden">
-              <FiLogOut size={16} />
-              Logout
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Notifications */}
-          {/* Notification button removed as requested */}
-          {/* Profile avatar as direct link */}
           {user && (
             <NavLink
               to="/profile"
-              className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-blue-200 dark:border-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent bg-white dark:bg-blue-900"
+              className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-blue-200 dark:border-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent bg-white dark:bg-blue-900 ml-2"
               aria-label="Profile"
               style={{ padding: 0 }}
             >
@@ -72,7 +63,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </NavLink>
           )}
           {!user && (
-            <div className="flex items-center gap-1">
+            <div className="hidden sm:flex items-center gap-1">
               <NavLink to="/login" className="px-3 py-1 rounded-lg text-xs font-semibold text-blue-700 dark:text-white hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors">Log In</NavLink>
               <NavLink to="/register" className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow">Sign Up</NavLink>
             </div>
@@ -139,7 +130,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 flex md:hidden">
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar overlay" />
-            <aside className="relative w-64 max-w-full h-full bg-white/90 dark:bg-[#232946]/90 border-r border-blue-100 dark:border-blue-900 shadow-2xl p-0 flex flex-col transition-transform duration-300 rounded-r-xl">
+            <aside className="relative w-64 max-w-full h-full bg-white/90 dark:bg-[#232946]/90 border-r border-blue-100 dark:border-blue-900 shadow-2xl p-0 flex flex-col transition-transform duration-300 rounded-r-xl overflow-y-auto">
+              {/* User info at top for mobile */}
+              {user && (
+                <div className="flex flex-col items-center py-6 border-b border-blue-100 dark:border-blue-900 bg-white/80 dark:bg-[#232946]/80">
+                  <Avatar src={user.photoURL} name={user.displayName} size={56} />
+                  <span className="mt-2 text-base font-semibold text-blue-900 dark:text-blue-100">{user.displayName}</span>
+                </div>
+              )}
               <button
                 className="absolute top-4 right-4 p-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 shadow"
                 onClick={() => setSidebarOpen(false)}
@@ -147,7 +145,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-              <nav className="flex flex-col gap-2 mt-16">
+              <nav className="flex flex-col gap-2 mt-8">
                 {navLinks.map((link) => {
                   const Icon = link.icon;
                   return (
@@ -160,8 +158,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                       title={link.name}
                       onClick={() => setSidebarOpen(false)}
                     >
-                      <span className="text-xl"><Icon size={20} /></span>
-                      <span>{link.name}</span>
+                      <span className="text-xl"><Icon size={22} /></span>
+                      <span className="text-base">{link.name}</span>
                     </NavLink>
                   );
                 })}
@@ -180,35 +178,47 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Bottom Navigation Bar for Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/90 dark:bg-[#232946]/90 border-t border-blue-100 dark:border-blue-900 flex justify-around items-center h-16 shadow-2xl backdrop-blur-lg">
         <NavLink to="/dashboard" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiHome size={24} />
+          <FiHome size={26} />
           <span className="text-xs">Home</span>
         </NavLink>
         <NavLink to="/editor" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiEdit size={24} />
+          <FiEdit size={26} />
           <span className="text-xs">Editor</span>
         </NavLink>
-        <NavLink to="/profile" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          {user ? <Avatar src={user.photoURL} name={user.displayName} size={24} /> : <FiUser size={24} />}
-          <span className="text-xs">Profile</span>
+        <NavLink to="/profile"
+          className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}`}
+        >
+          {({ isActive }) => (
+            <>
+              {user ? (
+                <span className={`rounded-full border-2 ${isActive ? 'border-blue-600 dark:border-orange-400' : 'border-blue-200 dark:border-blue-800'} p-0.5`}>
+                  <Avatar src={user.photoURL} name={user.displayName} size={32} />
+                </span>
+              ) : (
+                <FiUser size={26} />
+              )}
+              <span className="text-xs">Profile</span>
+            </>
+          )}
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiSettings size={24} />
+          <FiSettings size={26} />
           <span className="text-xs">Settings</span>
         </NavLink>
         <NavLink to="/agents" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiZap size={24} />
+          <FiZap size={26} />
           <span className="text-xs">Agents</span>
         </NavLink>
         <NavLink to="/analytics" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiBarChart2 size={24} />
+          <FiBarChart2 size={26} />
           <span className="text-xs">Analytics</span>
         </NavLink>
         <NavLink to="/help" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiInfo size={24} />
+          <FiInfo size={26} />
           <span className="text-xs">Help</span>
         </NavLink>
         <NavLink to="/feedback" className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full ${isActive ? 'text-blue-600 dark:text-orange-400' : 'text-blue-900 dark:text-blue-100'}` }>
-          <FiBell size={24} />
+          <FiBell size={26} />
           <span className="text-xs">Feedback</span>
         </NavLink>
       </nav>

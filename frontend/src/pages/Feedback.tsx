@@ -95,7 +95,7 @@ const Feedback: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full max-w-lg mx-auto p-4 md:p-8 flex flex-col items-center justify-center">
         <h2 className="text-2xl sm:text-3xl font-heading font-bold mb-4 sm:mb-6 text-center text-gray-900 dark:text-gray-100">User Feedback</h2>
-        <Card className="p-4 sm:p-6 mb-8">
+        <Card className="p-4 sm:p-6 mb-8 w-full">
           <h3 className="text-lg font-bold mb-4 text-blue-700 dark:text-orange-300 border-b border-blue-100 dark:border-blue-900 pb-2">Submit Feedback</h3>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <Input
@@ -126,7 +126,7 @@ const Feedback: React.FC = () => {
             <Button type="submit" variant="primary" className="w-full py-3 text-base mt-2">Submit Feedback</Button>
           </form>
         </Card>
-        <Card className="p-4 sm:p-6">
+        <Card className="p-4 sm:p-6 w-full">
           <h3 className="text-lg sm:text-xl font-bold mb-4 text-blue-700 dark:text-orange-300 border-b border-blue-100 dark:border-blue-900 pb-2 text-center">Comments & Suggestions</h3>
           <form className="flex flex-col sm:flex-row gap-2 mb-4" onSubmit={handleComment}>
             <input
