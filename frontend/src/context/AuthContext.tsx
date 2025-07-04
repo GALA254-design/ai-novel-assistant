@@ -13,6 +13,8 @@ import {
   User as FirebaseUser,
   sendPasswordResetEmail,
   sendEmailVerification,
+  browserLocalPersistence,
+  setPersistence,
 } from 'firebase/auth';
 
 // Define the shape of your user data (adjust as per your backend response)
@@ -40,6 +42,9 @@ interface AuthContextType {
 
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Set Firebase Auth persistence to local storage
+setPersistence(auth, browserLocalPersistence);
 
 // Define the AuthProvider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
