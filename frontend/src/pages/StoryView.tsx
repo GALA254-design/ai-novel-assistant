@@ -77,19 +77,20 @@ const StoryView: React.FC = () => {
 
   // Auto-save functionality
   useEffect(() => {
-    if (form.title || chapters.length > 0) {
+    if (form.title || form.content || chapters.length > 0) {
       setAutoSaving(true);
       const timer = setTimeout(async () => {
         try {
-          if (story && (form.title || chapters.length > 0)) {
-            // Combine all chapters into main story content
-            const combinedContent = chapters.map(chapter => 
-              `${chapter.title}\n\n${chapter.content}`
-            ).join('\n\n');
+          if (story && (form.title || form.content || chapters.length > 0)) {
+            // If we have chapters, combine them as main content
+            // If we're editing story content directly, use that
+            const contentToSave = chapters.length > 0 
+              ? chapters.map(chapter => `${chapter.title}\n\n${chapter.content}`).join('\n\n')
+              : form.content || '';
 
             await updateStory(story.id!, {
               title: form.title,
-              content: combinedContent,
+              content: contentToSave,
               genre: form.genre,
               tone: form.tone,
             });
@@ -129,20 +130,21 @@ const StoryView: React.FC = () => {
   const handleSave = async () => {
     try {
       if (story) {
-        // Combine all chapters into main story content
-        const combinedContent = chapters.map(chapter => 
-          `${chapter.title}\n\n${chapter.content}`
-        ).join('\n\n');
+        // If we're editing the main story content, save that directly
+        // If we have chapters, combine them as the main content
+        const contentToSave = chapters.length > 0 
+          ? chapters.map(chapter => `${chapter.title}\n\n${chapter.content}`).join('\n\n')
+          : form.content || '';
 
         await updateStory(story.id!, {
           title: form.title,
-          content: combinedContent, // Save combined chapters as main content
+          content: contentToSave,
           genre: form.genre,
           tone: form.tone,
         });
-        setStory({ ...story, ...form, content: combinedContent });
+        setStory({ ...story, ...form, content: contentToSave });
         showToast('Novel updated successfully!', 'success');
-        navigate('/dashboard', { state: { refresh: true } });
+        setEditMode(false);
       } else if (project) {
         await updateProject(user.uid, project.id!, {
           title: form.title,
@@ -154,7 +156,6 @@ const StoryView: React.FC = () => {
         showToast('Project updated!', 'success');
         setEditMode(false);
       }
-      setEditMode(false);
     } catch (err) {
       showToast('Failed to update. Please try again.', 'error');
     }
@@ -247,8 +248,8 @@ const StoryView: React.FC = () => {
   const handleAddChapter = () => {
     const newChapter = {
       id: null,
-      title: `CHAPTER ${chapters.length + 1}: NEW CHAPTER`,
-      content: '',
+      title: chapterForm.title || `CHAPTER ${chapters.length + 1}: NEW CHAPTER`,
+      content: chapterForm.content || '',
       chapterNumber: chapters.length + 1,
     };
     setChapters([...chapters, newChapter]);
@@ -259,6 +260,8 @@ const StoryView: React.FC = () => {
       content: newChapter.content,
     });
     setShowChapterModal(false);
+    // Reset the form for next use
+    setChapterForm({ title: '', content: '' });
   };
 
   // AI Refinement for current chapter
@@ -493,6 +496,22 @@ const StoryView: React.FC = () => {
             )}
           </Card>
 
+          {/* Story Content Editor - Only show when in edit mode */}
+          {editMode && (
+            <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h3 className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-4">Story Content</h3>
+              <textarea
+                name="content"
+                value={form.content || ''}
+                onChange={handleChange}
+                placeholder="Write your story content here..."
+                className="w-full min-h-[60vh] bg-transparent outline-none resize-none px-4 py-4 text-base sm:text-lg leading-relaxed font-medium rounded-xl border-2 border-blue-200 dark:border-orange-700 focus:border-blue-400 dark:focus:border-orange-400 transition-all duration-200"
+                style={{ fontFamily: 'serif' }}
+                required
+              />
+            </Card>
+          )}
+
           {/* Chapter Navigation */}
           <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-center justify-between bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-xl">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-3 sm:mb-0">
@@ -586,13 +605,51 @@ const StoryView: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-8 sm:py-12">
-                  <h3 className="text-lg sm:text-xl font-semibold text-blue-700 dark:text-orange-300 mb-4">No Chapters Yet</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">Start writing your novel by adding the first chapter.</p>
-                  <Button variant="primary" onClick={() => setShowChapterModal(true)} className="flex items-center gap-2">
-                    <FiPlus className="w-4 h-4" />
-                    Add First Chapter
-                  </Button>
+                <div className="w-full max-w-none lg:max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-4 sm:my-8 animate-fadeIn">
+                  <div className="space-y-4 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <h2 className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-orange-300 mb-2">
+                          {story?.title || 'Story Content'}
+                        </h2>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="secondary" 
+                          onClick={() => {
+                            const selection = window.getSelection();
+                            if (selection && selection.toString().trim()) {
+                              const selectedText = selection.toString();
+                              setChapterForm({
+                                title: `CHAPTER ${chapters.length + 1}: ${selectedText.substring(0, 50)}${selectedText.length > 50 ? '...' : ''}`,
+                                content: selectedText
+                              });
+                              setShowChapterModal(true);
+                            } else {
+                              showToast('Please select some text first to create a chapter', 'error');
+                            }
+                          }}
+                          className="flex items-center gap-2 w-full sm:w-auto"
+                        >
+                          <FiPlus className="w-4 h-4" />
+                          Create Chapter from Selection
+                        </Button>
+                        <Button variant="primary" onClick={() => setShowChapterModal(true)} className="flex items-center gap-2 w-full sm:w-auto">
+                          <FiPlus className="w-4 h-4" />
+                          Add Chapter
+                        </Button>
+                      </div>
+                    </div>
+                    <div 
+                      className="prose prose-blue dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed text-gray-900 dark:text-gray-100 whitespace-pre-line cursor-text select-text"
+                      style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+                    >
+                      {story?.content || 'No story content available. Please add some content to get started.'}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <strong>Tip:</strong> Select any text from the story content above and click "Create Chapter from Selection" to automatically create a new chapter with that content.
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -686,13 +743,38 @@ const StoryView: React.FC = () => {
         <Modal isOpen={showChapterModal} onClose={() => setShowChapterModal(false)} title="Add New Chapter">
           <div className="space-y-4">
             <p className="text-blue-900 dark:text-blue-100">
-              Create a new chapter for your novel. You can edit the title and content later.
+              {chapterForm.content ? 'Create a chapter from your selected text.' : 'Create a new chapter for your novel. You can edit the title and content later.'}
             </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Chapter Title</label>
+                <input
+                  type="text"
+                  value={chapterForm.title}
+                  onChange={(e) => setChapterForm({ ...chapterForm, title: e.target.value })}
+                  placeholder="CHAPTER 1: CHAPTER TITLE"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Chapter Content</label>
+                <textarea
+                  value={chapterForm.content}
+                  onChange={(e) => setChapterForm({ ...chapterForm, content: e.target.value })}
+                  placeholder="Write your chapter content here..."
+                  rows={8}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+                />
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button variant="primary" onClick={handleAddChapter}>
                 Create Chapter
               </Button>
-              <Button variant="secondary" onClick={() => setShowChapterModal(false)}>
+              <Button variant="secondary" onClick={() => {
+                setShowChapterModal(false);
+                setChapterForm({ title: '', content: '' });
+              }}>
                 Cancel
               </Button>
             </div>

@@ -7,7 +7,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createProject, addChapter } from '../../services/storyService';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Document, Packer } from 'docx';
 
 // Set up PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
@@ -51,30 +50,6 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
     }
   };
 
-  // Client-side DOCX text extraction using server-side as fallback
-  const extractDocxTextClient = async (file: File): Promise<string> => {
-    try {
-      // Use server-side extraction for DOCX since client-side is complex
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch('/api/files/extract-pdf', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to extract DOCX');
-      }
-      
-      const data = await response.json();
-      return data.text;
-    } catch (error) {
-      console.error('DOCX extraction error:', error);
-      throw new Error('Failed to extract text from DOCX');
-    }
-  };
-
   const handleFile = async (file: File) => {
     setError('');
     setPreview('');
@@ -90,7 +65,6 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         try {
           text = await extractPdfTextClient(file);
           setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
-          if (onStoryExtracted) onStoryExtracted(text);
           setLoading(false);
           return;
         } catch (err) {
@@ -101,11 +75,24 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           setLoading(false);
           return;
         }
-      } else if (ext === 'docx') {
+      } else if (ext === 'docx' || ext === 'doc') {
         try {
-          text = await extractDocxTextClient(file);
+          // For DOCX/DOC, we'll use server-side extraction as fallback
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch('/api/files/extract-pdf', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to extract DOCX');
+          }
+          
+          const data = await response.json();
+          text = data.text;
           setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
-          if (onStoryExtracted) onStoryExtracted(text);
           setLoading(false);
           return;
         } catch (err) {
@@ -116,30 +103,29 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           setLoading(false);
           return;
         }
-      } else if (ext === 'txt') {
+      } else if (ext === 'txt' || ext === 'rtf' || ext === 'md' || ext === 'html' || ext === 'htm') {
         try {
           const reader = new FileReader();
           reader.onload = (e) => {
             text = e.target?.result as string;
             setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
             setLoading(false);
-            if (onStoryExtracted) onStoryExtracted(text);
           };
           reader.onerror = () => {
-            setError('Unsupported or unreadable file format (TXT).');
+            setError('Unsupported or unreadable file format.');
             setFile(null);
             setLoading(false);
           };
           reader.readAsText(file);
           return;
         } catch (err) {
-          setError('Unsupported or unreadable file format (TXT).');
+          setError('Unsupported or unreadable file format.');
           setFile(null);
           setLoading(false);
           return;
         }
       } else {
-        setError('Unsupported file type. Please upload a PDF, DOCX, or plain text (.txt) file.');
+        setError('Unsupported file type. Please upload a PDF, DOCX, DOC, TXT, RTF, MD, or HTML file.');
         setFile(null);
         setLoading(false);
         return;
@@ -212,7 +198,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-orange-400 dark:to-pink-600 shadow-lg mr-2">
           <FiUpload className="w-7 h-7 text-white" />
         </span>
-        Upload PDF or Text Story
+        Upload Story Files
       </h3>
       <div
         className={`flex flex-col items-center justify-center border-2 rounded-2xl border-dashed transition-all duration-200 p-8 sm:p-10 mb-6 w-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 ${dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40' : 'border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80'}`}
@@ -226,7 +212,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
       >
         <input
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,.docx,.doc,.txt,.rtf,.md,.html,.htm"
           className="hidden"
           ref={inputRef}
           onChange={handleChange}
@@ -234,13 +220,13 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         <div className="flex flex-col items-center gap-3">
           {file ? (
             <>
-              {(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) ? <FiFile className="w-10 h-10 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-10 h-10 text-blue-500 dark:text-orange-300" />}
+              {(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')) ? <FiFile className="w-10 h-10 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-10 h-10 text-blue-500 dark:text-orange-300" />}
               <span className="font-semibold text-blue-700 dark:text-orange-200 text-lg">{file.name}</span>
             </>
           ) : (
             <>
               <FiUpload className="w-10 h-10 text-blue-400 dark:text-orange-400" />
-              <span className="text-blue-600 dark:text-orange-200 text-base font-medium text-center">Drag & drop or click to select a PDF, DOCX, or .txt file</span>
+              <span className="text-blue-600 dark:text-orange-200 text-base font-medium text-center">Drag & drop or click to select a PDF, DOCX, DOC, TXT, RTF, MD, or HTML file</span>
             </>
           )}
         </div>
@@ -265,4 +251,4 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
   );
 };
 
-export default UploadStoryCard; 
+export default UploadStoryCard;

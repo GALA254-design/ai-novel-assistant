@@ -17,6 +17,7 @@ import Recover from './pages/Recover';
 import VerifyEmail from './pages/VerifyEmail';
 import NewStory from './pages/NewStory';
 import StoryView from './pages/StoryView';
+import StoryViewEditor from './pages/StoryViewEditor';
 import Welcome from './pages/Welcome';
 import './App.css';
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
             <Route path="/agents" element={<PrivateRoute><AgentManager /></PrivateRoute>} />
             <Route path="/analytics" element={<PrivateRoute><AnalyticsDashboard /></PrivateRoute>} />
             <Route path="/story/:projectId" element={<PrivateRoute><StoryView /></PrivateRoute>} />
+            <Route path="/story-editor/:projectId" element={<PrivateRoute><StoryViewEditor /></PrivateRoute>} />
             <Route path="*" element={<Welcome />} />
           </Route>
         </Routes>

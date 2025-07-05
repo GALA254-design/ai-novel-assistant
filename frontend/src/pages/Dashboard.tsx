@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -38,6 +38,123 @@ const genreOptions = [
 const toneOptions = [
   'Serious', 'Humorous', 'Dramatic', 'Light', 'Dark', 'Other'
 ];
+
+// Isolated Upload Form Component
+const UploadForm: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { title: string; genre: string; tone: string; content: string }) => void;
+  initialData: { title: string; genre: string; tone: string; content: string };
+  loading: boolean;
+}> = ({ isOpen, onClose, onSubmit, initialData, loading }) => {
+  const [formData, setFormData] = useState(initialData);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData);
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, initialData]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Enter Story Details" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-8 p-2">
+        <div>
+          <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Story Title</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="Enter a compelling title"
+            required
+            className="w-full text-lg sm:text-xl font-bold bg-transparent outline-none border-b-2 border-blue-200 dark:border-orange-700 px-2 py-2"
+            ref={titleInputRef}
+          />
+        </div>
+        <div>
+          <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Genre</label>
+          <select
+            className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
+            value={genreOptions.includes(formData.genre) ? formData.genre : 'Other'}
+            onChange={e => {
+              const value = e.target.value;
+              setFormData(prev => ({ ...prev, genre: value === 'Other' ? '' : value }));
+            }}
+            required
+          >
+            <option value="" disabled>Select genre</option>
+            {genreOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          {(!genreOptions.includes(formData.genre) || formData.genre === '') && (
+            <Input
+              label="Custom Genre"
+              value={formData.genre}
+              onChange={e => setFormData(prev => ({ ...prev, genre: e.target.value }))}
+              placeholder="Enter custom genre"
+              required
+              className="rounded-xl py-3 px-4 text-lg font-semibold mt-2"
+            />
+          )}
+        </div>
+        <div>
+          <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Tone</label>
+          <select
+            className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
+            value={toneOptions.includes(formData.tone) ? formData.tone : 'Other'}
+            onChange={e => {
+              const value = e.target.value;
+              setFormData(prev => ({ ...prev, tone: value === 'Other' ? '' : value }));
+            }}
+            required
+          >
+            <option value="" disabled>Select tone</option>
+            {toneOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          {(!toneOptions.includes(formData.tone) || formData.tone === '') && (
+            <Input
+              label="Custom Tone"
+              value={formData.tone}
+              onChange={e => setFormData(prev => ({ ...prev, tone: e.target.value }))}
+              placeholder="Enter custom tone"
+              required
+              className="rounded-xl py-3 px-4 text-lg font-semibold mt-2"
+            />
+          )}
+        </div>
+        <div>
+          <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Story Content</label>
+          <textarea
+            className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-lg font-semibold"
+            value={formData.content}
+            onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
+            placeholder="Your story content..."
+            required
+          />
+        </div>
+        <div className="flex gap-4 justify-end pt-4">
+          <Button variant="secondary" className="rounded-xl px-6 py-2 font-bold" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={loading} className="rounded-xl px-6 py-2 font-bold">
+            {loading ? 'Saving...' : 'Save Story'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
 
 const Dashboard: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -120,22 +237,22 @@ const Dashboard: React.FC = () => {
   ];
 
   // Handle upload from UploadStoryCard
-  const handleUpload = async (text: string, file: File) => {
+  const handleUpload = useCallback(async (text: string, file: File) => {
     setPendingUpload({ text, file });
-    setUploadMeta({ title: file.name.replace(/\.(pdf|txt|docx)$/i, ''), genre: '', tone: '', content: text });
+    const initialData = { title: file.name.replace(/\.(pdf|txt|docx)$/i, ''), genre: '', tone: '', content: text };
+    setUploadMeta(initialData);
     setShowMetaModal(true);
-  };
+  }, []);
 
   // Save story after user enters meta
-  const handleMetaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMetaSubmit = async (data: { title: string; genre: string; tone: string; content: string }) => {
     if (!user || !pendingUpload) return;
     setLoading(true);
     await createStory({
-      title: uploadMeta.title,
-      content: uploadMeta.content,
-      genre: uploadMeta.genre,
-      tone: uploadMeta.tone,
+      title: data.title,
+      content: data.content,
+      genre: data.genre,
+      tone: data.tone,
       authorId: user.uid,
       authorName: user.displayName || '',
     });
@@ -146,7 +263,7 @@ const Dashboard: React.FC = () => {
     setPendingUpload(null);
     setUploadMeta({ title: '', genre: '', tone: '', content: '' });
     setUploadCardKey(k => k + 1);
-    addActivity('upload', `Uploaded "${uploadMeta.title}"`);
+    addActivity('upload', `Uploaded "${data.title}"`);
     showToast('Story uploaded!', 'success');
   };
 
@@ -283,17 +400,17 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 w-full max-w-full overflow-x-auto">
-      <div className="w-full max-w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Premium Header */}
-        <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-8 py-4 shadow-xl rounded-2xl mb-6 sm:mb-10 w-full max-w-full">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 via-indigo-500 to-indigo-700 rounded-3xl shadow-2xl flex items-center justify-center">
-              <FiBookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow-lg" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 w-full max-w-full overflow-x-hidden">
+      <div className="w-full max-w-full mx-auto p-3 sm:p-6 lg:p-8">
+        {/* Mobile-Optimized Header */}
+        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-6 shadow-xl rounded-2xl mb-4 sm:mb-8 w-full max-w-full">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-600 via-indigo-500 to-indigo-700 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center">
+              <FiBookOpen className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white drop-shadow-lg" />
             </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Dashboard</h2>
-              <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base font-medium">Manage your creative stories</p>
+            <div className="flex-1 sm:flex-none">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Dashboard</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm lg:text-base font-medium">Manage your creative stories</p>
             </div>
           </div>
           <Button 
@@ -301,91 +418,94 @@ const Dashboard: React.FC = () => {
             size="lg"
             icon={<FiPlus />} 
             onClick={() => navigate('/new-story')}
-            className="shadow-lg hover:shadow-2xl transition-all duration-200 w-full sm:w-auto text-lg font-bold px-8 py-3"
+            className="shadow-lg hover:shadow-2xl transition-all duration-200 w-full sm:w-auto text-base sm:text-lg font-bold px-6 sm:px-8 py-3 rounded-xl"
           >
             New Story
           </Button>
         </div>
 
-        <div className="flex flex-col xl:flex-row gap-6 sm:gap-8 w-full max-w-full">
-          {/* Left: Main content */}
-          <div className="flex-1 min-w-0 space-y-6 sm:space-y-8 w-full max-w-full">
+        {/* Mobile-First Layout */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full max-w-full">
+          {/* Main Content - Full width on mobile */}
+          <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
             {/* Upload Story Card */}
             <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
             
-            {/* Premium Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-8 mb-6 sm:mb-8">
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-50/80 to-indigo-100/80 dark:from-blue-900/40 dark:to-indigo-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
-                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+            {/* Mobile-Optimized Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-50/80 to-indigo-100/80 dark:from-blue-900/40 dark:to-indigo-900/40 border-0 w-full" variant="elevated" hover>
+                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiBookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
                   </div>
-                  <div>
-                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{totalStories}</div>
-                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">Total Stories</div>
-                  </div>
-                </div>
-              </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-green-50/80 to-emerald-100/80 dark:from-green-900/40 dark:to-emerald-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
-                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBarChart2 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{completedStories}</div>
-                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">Completed</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{totalStories}</div>
+                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">Total Stories</div>
                   </div>
                 </div>
               </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-purple-50/80 to-pink-100/80 dark:from-purple-900/40 dark:to-pink-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
-                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiZap className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-green-50/80 to-emerald-100/80 dark:from-green-900/40 dark:to-emerald-900/40 border-0 w-full" variant="elevated" hover>
+                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiBarChart2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
                   </div>
-                  <div>
-                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{aiGeneratedStories}</div>
-                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">AI Generated</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{completedStories}</div>
+                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">Completed</div>
+                  </div>
+                </div>
+              </Card>
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-purple-50/80 to-pink-100/80 dark:from-purple-900/40 dark:to-pink-900/40 border-0 w-full sm:col-span-2 lg:col-span-1" variant="elevated" hover>
+                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiZap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{aiGeneratedStories}</div>
+                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">AI Generated</div>
                   </div>
                 </div>
               </Card>
             </div>
 
-            {/* Stories Table */}
-            <div className="mb-8">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 sm:mb-6">
+            {/* Mobile-Optimized Stories Table */}
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="relative w-full sm:w-80 lg:w-96">
                   <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 sm:w-5 sm:h-5" />
                   <input
                     type="text"
-                    placeholder="Search stories by title, genre, or tone..."
-                    className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
+                    placeholder="Search stories..."
+                    className="w-full pl-9 sm:pl-10 pr-4 py-3 sm:py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
                     aria-label="Search stories"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                   />
                 </div>
               </div>
-              <DataTable
-                columns={columns}
-                data={getFilteredStories('all').map((story) => ({
-                  ...story,
-                  updatedAt: <span className="text-blue-600 dark:text-blue-400 font-mono text-xs sm:text-sm">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
-                  actions: null,
-                  onView: () => navigate(`/story/${story.id}`),
-                  onPreview: () => setPreview(story),
-                  onDelete: () => { setSelected(story); setShowDelete(true); },
-                }))}
-                onBatchDelete={handleBatchDelete}
-              />
+              <div className="overflow-x-auto">
+                <DataTable
+                  columns={columns}
+                  data={getFilteredStories('all').map((story) => ({
+                    ...story,
+                    updatedAt: <span className="text-blue-600 dark:text-blue-400 font-mono text-xs sm:text-sm">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
+                    actions: null,
+                    onView: () => navigate(`/story-editor/${story.id}`),
+                    onPreview: () => setPreview(story),
+                    onDelete: () => { setSelected(story); setShowDelete(true); },
+                  }))}
+                  onBatchDelete={handleBatchDelete}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Right: Quick Actions & Recent Activity */}
-          <div className="w-full xl:w-72 2xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 xl:sticky xl:top-24 xl:self-start min-w-0 max-w-full">
-            <Card className="p-5 sm:p-7 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
-              <h4 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
-                  <FiZap className="w-5 h-5 text-white" />
+          {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
+          <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
+            <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
+              <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
+                <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
+                  <FiZap className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
                 </span>
                 Quick Actions
               </h4>
@@ -395,7 +515,7 @@ const Dashboard: React.FC = () => {
                   size="lg"
                   icon={<FiDownload />}
                   onClick={handleExportAll}
-                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-sm font-bold py-3 rounded-xl"
+                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
                 >
                   Export All Stories
                 </Button>
@@ -404,17 +524,17 @@ const Dashboard: React.FC = () => {
                   size="lg"
                   icon={<FiTrash2 />}
                   onClick={handleDeleteSelected}
-                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-sm font-bold py-3 rounded-xl"
+                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
                 >
                   Delete Selected
                 </Button>
               </div>
             </Card>
             
-            <Card className="p-5 sm:p-7 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
-              <h4 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
-                  <FiClock className="w-5 h-5 text-white" />
+            <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
+              <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
+                <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
+                  <FiClock className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
                 </span>
                 Recent Activity
               </h4>
@@ -511,92 +631,13 @@ const Dashboard: React.FC = () => {
         </Modal>
 
         {/* Story Meta Modal */}
-        <Modal
+        <UploadForm
           isOpen={showMetaModal}
           onClose={() => { setShowMetaModal(false); setPendingUpload(null); }}
-          title="Enter Story Details"
-          size="lg"
-        >
-          <form onSubmit={handleMetaSubmit} className="space-y-8 p-2">
-            <Input
-              label="Story Title"
-              name="title"
-              value={uploadMeta.title}
-              onChange={e => setUploadMeta({ ...uploadMeta, title: e.target.value })}
-              placeholder="Enter a compelling title"
-              required
-              className="rounded-xl py-3 px-4 text-lg font-semibold"
-            />
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Genre</label>
-              <select
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
-                value={genreOptions.includes(uploadMeta.genre) ? uploadMeta.genre : 'Other'}
-                onChange={e => {
-                  const value = e.target.value;
-                  setUploadMeta({ ...uploadMeta, genre: value === 'Other' ? '' : value });
-                }}
-                required
-              >
-                <option value="" disabled>Select genre</option>
-                {genreOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              {(!genreOptions.includes(uploadMeta.genre) || uploadMeta.genre === '') && (
-                <Input
-                  label="Custom Genre"
-                  value={uploadMeta.genre}
-                  onChange={e => setUploadMeta({ ...uploadMeta, genre: e.target.value })}
-                  placeholder="Enter custom genre"
-                  required
-                  className="rounded-xl py-3 px-4 text-lg font-semibold mt-2"
-                />
-              )}
-            </div>
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Tone</label>
-              <select
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
-                value={toneOptions.includes(uploadMeta.tone) ? uploadMeta.tone : 'Other'}
-                onChange={e => {
-                  const value = e.target.value;
-                  setUploadMeta({ ...uploadMeta, tone: value === 'Other' ? '' : value });
-                }}
-                required
-              >
-                <option value="" disabled>Select tone</option>
-                {toneOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-              {(!toneOptions.includes(uploadMeta.tone) || uploadMeta.tone === '') && (
-                <Input
-                  label="Custom Tone"
-                  value={uploadMeta.tone}
-                  onChange={e => setUploadMeta({ ...uploadMeta, tone: e.target.value })}
-                  placeholder="Enter custom tone"
-                  required
-                  className="rounded-xl py-3 px-4 text-lg font-semibold mt-2"
-                />
-              )}
-            </div>
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Story Content</label>
-              <textarea
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-lg font-semibold"
-                value={uploadMeta.content}
-                onChange={e => setUploadMeta({ ...uploadMeta, content: e.target.value })}
-                placeholder="Your story content..."
-                required
-              />
-            </div>
-            <div className="flex gap-4 justify-end pt-4">
-              <Button variant="secondary" className="rounded-xl px-6 py-2 font-bold" onClick={() => { setShowMetaModal(false); setPendingUpload(null); }}>
-                Cancel
-              </Button>
-              <Button variant="primary" type="submit" disabled={loading} className="rounded-xl px-6 py-2 font-bold">
-                {loading ? 'Saving...' : 'Save Story'}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+          onSubmit={handleMetaSubmit}
+          initialData={uploadMeta}
+          loading={loading}
+        />
 
         {/* Export Modal */}
         <Modal 

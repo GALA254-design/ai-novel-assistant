@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -29,7 +29,7 @@ const toneOptions = [
 
 // Enhanced StoryEditor page with Card, Input, Button, and Modal
 const StoryEditor: React.FC = () => {
-  const [storyForm, setStoryForm] = useState({ title: '', genre: '', tone: '', description: '' });
+  const [storyForm, setStoryForm] = useState({ title: '', genre: '', tone: '', description: '', content: '' });
   const [chapters, setChapters] = useState<any[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [showChapterModal, setShowChapterModal] = useState(false);
@@ -41,6 +41,10 @@ const StoryEditor: React.FC = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [exporting, setExporting] = useState<'pdf' | 'txt' | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [documentViewMode, setDocumentViewMode] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -48,6 +52,127 @@ const StoryEditor: React.FC = () => {
 
   // Add ref for textarea
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Function to split content into pages (1800 chars per page)
+  const splitContentIntoPages = (content: string): string[] => {
+    const charsPerPage = 1800;
+    const pages: string[] = [];
+    let currentPage = '';
+    let charCount = 0;
+    
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      const lineLength = line.length + 1; // +1 for newline
+      
+      if (charCount + lineLength > charsPerPage && currentPage.trim()) {
+        // Current page is full, start new page
+        pages.push(currentPage.trim());
+        currentPage = line + '\n';
+        charCount = lineLength;
+      } else {
+        // Add line to current page
+        currentPage += line + '\n';
+        charCount += lineLength;
+      }
+    }
+    
+    // Add the last page if it has content
+    if (currentPage.trim()) {
+      pages.push(currentPage.trim());
+    }
+    
+    return pages.length > 0 ? pages : [''];
+  };
+
+  // Get combined content from chapters
+  const getCombinedContent = (): string => {
+    return chapters.map(chapter => `${chapter.title}\n\n${chapter.content}`).join('\n\n');
+  };
+
+  // Memoized page calculations to prevent infinite re-renders
+  const pages = useMemo(() => {
+    return splitContentIntoPages(getCombinedContent());
+  }, [chapters]);
+
+  // Update totalPages when pages change
+  useEffect(() => {
+    setTotalPages(pages.length);
+    // Reset current page if it's out of bounds
+    if (currentPage > pages.length && pages.length > 0) {
+      setCurrentPage(1);
+    }
+  }, [pages.length, currentPage, pages]);
+
+  // Get current page content
+  const getCurrentPageContent = (): string => {
+    return pages[currentPage - 1] || '';
+  };
+
+  // Function to handle page navigation
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Function to update content when editing a specific page
+  const handlePageContentChange = (newPageContent: string) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPage - 1] = newPageContent;
+    const updatedContent = updatedPages.join('\n\n');
+    
+    // Parse the combined content back into chapters
+    const chapterRegex = /CHAPTER\s+\d+[:\s]+([^\n]+)/gi;
+    const chapterMatches = [...updatedContent.matchAll(chapterRegex)];
+    
+    if (chapterMatches.length > 0) {
+      const newChapters = [];
+      let lastIndex = 0;
+      
+      for (let i = 0; i < chapterMatches.length; i++) {
+        const match = chapterMatches[i];
+        const chapterTitle = match[0];
+        const chapterStart = match.index!;
+        
+        // Get content from last chapter end to this chapter start
+        const chapterContent = updatedContent.substring(lastIndex, chapterStart).trim();
+        
+        if (i > 0) {
+          // Update previous chapter content
+          newChapters[i - 1].content = chapterContent;
+        }
+        
+        // Add new chapter
+        newChapters.push({
+          id: chapters[i]?.id || null,
+          title: chapterTitle,
+          content: '',
+          chapterNumber: i + 1,
+        });
+        
+        lastIndex = chapterStart + chapterTitle.length;
+      }
+      
+      // Add content for the last chapter
+      const lastChapterContent = updatedContent.substring(lastIndex).trim();
+      if (newChapters.length > 0) {
+        newChapters[newChapters.length - 1].content = lastChapterContent;
+      }
+      
+      setChapters(newChapters);
+    } else {
+      // No chapters detected, update the first chapter
+      if (chapters.length > 0) {
+        const updatedChapters = [...chapters];
+        updatedChapters[0] = {
+          ...updatedChapters[0],
+          content: updatedContent
+        };
+        setChapters(updatedChapters);
+      }
+    }
+  };
 
   // Auto-save functionality
   useEffect(() => {
@@ -154,36 +279,84 @@ const StoryEditor: React.FC = () => {
   };
 
   // Handle export functionality
-  const handleExport = async (type: 'pdf' | 'txt') => {
+  const handleExport = (format: string) => {
     if (!storyForm.title || chapters.length === 0) {
-      alert('Please add content before exporting.');
+      showToast('Please add content before exporting.', 'error');
       return;
     }
 
-    setExporting(type);
-    try {
-      const fullContent = chapters.map(chapter => 
-        `${chapter.title}\n\n${chapter.content}`
-      ).join('\n\n');
-
-      if (type === 'pdf') {
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text(storyForm.title || '', 10, 20);
-        doc.setFontSize(12);
-        const splitText = doc.splitTextToSize(fullContent || '', 180);
-        doc.text(splitText, 10, 30);
-        doc.save(`${storyForm.title || 'story'}.pdf`);
-      } else if (type === 'txt') {
-        const blob = new Blob([fullContent], { type: 'text/plain;charset=utf-8' });
-        saveAs(blob, `${storyForm.title || 'story'}.txt`);
-      }
-    } catch (error) {
-      console.error('Error exporting:', error);
-      alert('Failed to export. Please try again.');
-    } finally {
-      setExporting(null);
+    const fullContent = chapters.map(chapter => 
+      `${chapter.title}\n\n${chapter.content}`
+    ).join('\n\n');
+    const title = storyForm.title || 'Untitled Story';
+    
+    switch (format) {
+      case 'pdf':
+        // Create PDF using browser print functionality
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>${title}</title>
+                <style>
+                  body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; margin: 1in; }
+                  h1 { text-align: center; margin-bottom: 2em; }
+                  .content { text-align: justify; }
+                </style>
+              </head>
+              <body>
+                <h1>${title}</h1>
+                <div class="content">${fullContent.replace(/\n/g, '<br>')}</div>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+          printWindow.print();
+        }
+        break;
+        
+      case 'txt':
+        // Download as text file
+        const blob = new Blob([fullContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        break;
+        
+      case 'docx':
+        // For DOCX, we'll use a simple approach - download as HTML that can be opened in Word
+        const htmlContent = `
+          <html>
+            <head>
+              <title>${title}</title>
+              <meta charset="utf-8">
+            </head>
+            <body>
+              <h1>${title}</h1>
+              <div>${fullContent.replace(/\n/g, '<br>')}</div>
+            </body>
+          </html>
+        `;
+        const docxBlob = new Blob([htmlContent], { type: 'text/html' });
+        const docxUrl = URL.createObjectURL(docxBlob);
+        const docxA = document.createElement('a');
+        docxA.href = docxUrl;
+        docxA.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.html`;
+        document.body.appendChild(docxA);
+        docxA.click();
+        document.body.removeChild(docxA);
+        URL.revokeObjectURL(docxUrl);
+        break;
     }
+    
+    setShowExportModal(false);
+    showToast(`Story exported as ${format.toUpperCase()} successfully!`, 'success');
   };
 
   // AI Refinement for current chapter
@@ -353,206 +526,273 @@ const StoryEditor: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
-      <div className="w-full mx-auto p-2 sm:p-8 max-w-full">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-100 via-white to-indigo-100 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 py-3 sm:py-4 shadow-xl rounded-b-2xl mb-4 sm:mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="w-full max-w-full mx-auto p-3 sm:p-6 lg:p-8">
+        {/* Mobile-Optimized Header */}
+        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-6 shadow-xl rounded-2xl mb-4 sm:mb-8 w-full max-w-full">
           <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <Button
-              variant="secondary"
+            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-600 via-indigo-500 to-indigo-700 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center">
+              <FiBookOpen className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white drop-shadow-lg" />
+            </div>
+            <div className="flex-1 sm:flex-none">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Story Editor</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm lg:text-base font-medium">Edit and refine your story</p>
+            </div>
+          </div>
+          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => setShowExportModal(true)}
+              className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+            >
+              Export
+            </Button>
+            <Button 
+              variant="primary" 
+              size="sm"
               onClick={handleBack}
-              className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
-              aria-label="Go back to Dashboard"
+              className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
             >
-              <FiArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back</span>
-            </Button>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent flex items-center gap-3 tracking-tight">Novel Editor</h2>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-0 w-full sm:w-auto">
-            {autoSaving && (
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-600 dark:text-orange-400">
-                <Loader size={14} />
-                <span className="hidden sm:inline">Auto-saving...</span>
-                <span className="sm:hidden">Saving...</span>
-              </div>
-            )}
-            {lastSaved && !autoSaving && (
-              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                <span className="hidden sm:inline">Last saved: {lastSaved.toLocaleTimeString()}</span>
-                <span className="sm:hidden">Saved</span>
-              </div>
-            )}
-            <Button 
-              variant="secondary" 
-              onClick={() => handleExport('txt')}
-              disabled={exporting === 'txt'}
-              className="flex items-center gap-2 text-xs sm:text-sm"
-            >
-              {exporting === 'txt' ? <Loader size={14} /> : <FiFileText className="w-4 h-4" />}
-              <span className="hidden sm:inline">Export TXT</span>
-              <span className="sm:hidden">TXT</span>
-            </Button>
-            <Button 
-              variant="secondary" 
-              onClick={() => handleExport('pdf')}
-              disabled={exporting === 'pdf'}
-              className="flex items-center gap-2 text-xs sm:text-sm"
-            >
-              {exporting === 'pdf' ? <Loader size={14} /> : <FiDownload className="w-4 h-4" />}
-              <span className="hidden sm:inline">Export PDF</span>
-              <span className="sm:hidden">PDF</span>
+              Back
             </Button>
           </div>
         </div>
 
-        {/* Story Specifications */}
-        <Card className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-          <h3 className="text-lg sm:text-xl font-bold text-blue-700 dark:text-orange-300 mb-3 sm:mb-4">Story Specifications</h3>
-          <div className="space-y-3 sm:space-y-4">
-            <input
-              name="title"
-              value={storyForm.title}
-              onChange={handleStoryChange}
-              placeholder="Novel Title..."
-              className="w-full text-lg sm:text-xl font-bold bg-transparent outline-none border-b-2 border-blue-200 dark:border-orange-700 px-2 py-2"
-              required
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              <input
-                className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
-                name="genre"
-                value={storyForm.genre}
-                onChange={handleStoryChange}
-                placeholder="Genre..."
-                list="genre-options"
-              />
-              <datalist id="genre-options">
-                {genreOptions.map(option => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-              <input
-                className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
-                name="tone"
-                value={storyForm.tone}
-                onChange={handleStoryChange}
-                placeholder="Tone..."
-                list="tone-options"
-              />
-              <datalist id="tone-options">
-                {toneOptions.map(option => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </div>
-            <textarea
-              name="description"
-              value={storyForm.description}
-              onChange={handleStoryChange}
-              placeholder="Story description..."
-              className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 resize-none text-sm sm:text-base"
-              rows={3}
-            />
-          </div>
-        </Card>
-
-        {/* Chapter Navigation */}
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-center justify-between bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-xl">
-          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-3 sm:mb-0">
-            <Button
-              variant="secondary"
-              onClick={handlePrevChapter}
-              disabled={currentChapterIndex === 0}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-            >
-              <FiChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Previous Chapter</span>
-              <span className="sm:hidden">Prev</span>
-            </Button>
-            <div className="flex items-center gap-2">
-              <FiBook className="w-4 h-4 text-blue-600 dark:text-orange-400" />
-              <span className="font-semibold text-blue-900 dark:text-blue-100 text-xs sm:text-sm">
-                {currentChapter?.title || 'No Chapter'}
-              </span>
-            </div>
-            <Button
-              variant="secondary"
-              onClick={handleNextChapter}
-              disabled={currentChapterIndex === chapters.length - 1}
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-            >
-              <span className="hidden sm:inline">Next Chapter</span>
-              <span className="sm:hidden">Next</span>
-              <FiChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-          <Button
-            variant="primary"
-            onClick={() => setShowChapterModal(true)}
-            className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm"
-          >
-            <FiPlus className="w-4 h-4" />
-            Add Chapter
-          </Button>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 mt-4">
-          {/* Left: Chapter Editor - wider on mobile */}
-          <div className="lg:w-3/4 flex-1 min-w-0">
-            <div className="w-full max-w-none lg:max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-4 sm:my-8 animate-fadeIn">
-              <div className="flex flex-col gap-4 sm:gap-6">
-                <input
-                  name="title"
-                  value={currentChapter?.title || ''}
-                  onChange={handleChapterChange}
-                  placeholder="CHAPTER 1: CHAPTER TITLE"
-                  className="w-full text-lg sm:text-xl lg:text-2xl font-bold bg-transparent outline-none px-4 sm:px-6 pt-6 sm:pt-8 pb-2 rounded-t-2xl"
-                  autoFocus
-                  required
-                />
-                <textarea
-                  ref={textareaRef}
-                  name="content"
-                  value={currentChapter?.content || ''}
-                  onChange={handleChapterChange}
-                  placeholder="Write your chapter content here..."
-                  className="w-full min-h-[50vh] sm:min-h-[60vh] bg-transparent outline-none resize-none px-4 sm:px-6 pb-6 sm:pb-8 text-base sm:text-lg lg:text-xl leading-relaxed font-medium rounded-b-2xl"
-                  style={{ fontFamily: 'serif', boxShadow: 'none', border: 'none' }}
-                  required
-                />
+        {/* Mobile-First Layout */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full max-w-full">
+          {/* Main Content - Full width on mobile */}
+          <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
+            {/* Story Specifications */}
+            <Card className="p-4 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-0 shadow-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="space-y-1 sm:space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={storyForm.title}
+                    onChange={handleStoryChange}
+                    placeholder="Story title"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                    required
+                  />
+                </div>
+                <div className="space-y-1 sm:space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Genre</label>
+                  <input
+                    type="text"
+                    name="genre"
+                    value={storyForm.genre}
+                    onChange={handleStoryChange}
+                    placeholder="Genre"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                  />
+                </div>
+                <div className="space-y-1 sm:space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tone</label>
+                  <input
+                    type="text"
+                    name="tone"
+                    value={storyForm.tone}
+                    onChange={handleStoryChange}
+                    placeholder="Tone"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                  />
+                </div>
+                <div className="space-y-1 sm:space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">View Mode</label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={documentViewMode ? "primary" : "secondary"}
+                      size="sm"
+                      onClick={() => setDocumentViewMode(true)}
+                      className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                    >
+                      Document
+                    </Button>
+                    <Button
+                      variant={!documentViewMode ? "primary" : "secondary"}
+                      size="sm"
+                      onClick={() => setDocumentViewMode(false)}
+                      className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                    >
+                      Editor
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Card>
+
+            {/* Document View Mode */}
+            {documentViewMode && (
+              <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                {/* Document Header */}
+                <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700">
+                  <div className="text-center">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                      {storyForm.title || 'Untitled Story'}
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                      {storyForm.genre && `Genre: ${storyForm.genre}`} {storyForm.tone && `• Tone: ${storyForm.tone}`}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Document Content */}
+                <div className="relative p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-300px)]">
+                  {/* Document Content Editor */}
+                  <textarea
+                    key={`page-${currentPage}-${pages.length}`}
+                    name="content"
+                    value={getCurrentPageContent()}
+                    onChange={(e) => handlePageContentChange(e.target.value)}
+                    placeholder="Write your story content here... Use chapter headings like 'CHAPTER 1: Title' to create chapters automatically."
+                    className="w-full h-full bg-transparent outline-none resize-none text-gray-900 dark:text-gray-100 leading-relaxed"
+                    style={{ 
+                      fontFamily: 'Times New Roman, serif',
+                      fontSize: '12pt',
+                      lineHeight: '1.6',
+                      textAlign: 'justify',
+                      border: 'none',
+                      boxShadow: 'none',
+                      backgroundColor: 'transparent',
+                      minHeight: 'calc(100vh - 300px)',
+                      overflow: 'hidden',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none'
+                    }}
+                    required
+                  />
+                  
+                  {/* Page Number */}
+                  <div className="absolute bottom-4 sm:bottom-8 right-4 sm:right-8 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                </div>
+                
+                {/* Mobile-Optimized Page Navigation Controls */}
+                <div className="fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex justify-center items-center gap-2 sm:gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-xl p-2 sm:p-3 shadow-xl">
+                  <Button
+                    variant="secondary"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                  >
+                    <FiChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 px-2 sm:px-4">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Editor View Mode */}
+            {!documentViewMode && (
+              <div className="space-y-4 sm:space-y-6">
+                {/* Chapter Navigation */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Button
+                      variant="secondary"
+                      onClick={handlePrevChapter}
+                      disabled={currentChapterIndex <= 0}
+                      className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                    >
+                      <FiChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">Previous</span>
+                    </Button>
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Chapter {currentChapterIndex + 1} of {chapters.length}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      onClick={handleNextChapter}
+                      disabled={currentChapterIndex >= chapters.length - 1}
+                      className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={() => setShowChapterModal(true)}
+                    className="text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl"
+                  >
+                    Add Chapter
+                  </Button>
+                </div>
+
+                {/* Chapter Editor */}
+                {currentChapter && (
+                  <Card className="p-4 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-0 shadow-xl">
+                    <div className="space-y-4 sm:space-y-6">
+                      <input
+                        type="text"
+                        name="title"
+                        value={currentChapter.title}
+                        onChange={handleChapterChange}
+                        placeholder="Chapter title"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base font-semibold"
+                        required
+                      />
+                      <textarea
+                        name="content"
+                        value={currentChapter.content}
+                        onChange={handleChapterChange}
+                        placeholder="Write your chapter content here..."
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 resize-none text-sm sm:text-base min-h-[300px]"
+                        required
+                      />
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
-          {/* Right: Panels - full width on mobile */}
-          <div className="lg:w-1/4 w-full flex-shrink-0 flex flex-col gap-4 sm:gap-6 lg:sticky lg:top-20 lg:self-start min-w-0">
+
+          {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
+          <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
             {/* AI Tools */}
-            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">AI Tools</h4>
+            <Card className="p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">AI Tools</h4>
               <div className="space-y-2 sm:space-y-3">
                 <Button
                   variant="secondary"
                   onClick={handleAiRefine}
                   disabled={aiRefining || !currentChapter?.content}
-                  className="w-full flex items-center gap-2 text-sm"
+                  className="w-full flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-3 rounded-xl"
                 >
-                  {aiRefining ? <Loader size={14} /> : <FiZap className="w-4 h-4" />}
+                  {aiRefining ? <Loader size={12} className="sm:w-3.5 sm:h-3.5" /> : <FiZap className="w-3 h-3 sm:w-4 sm:h-4" />}
                   {aiRefining ? 'Refining...' : 'Refine Chapter'}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={handleAiContinue}
                   disabled={aiContinuing || !currentChapter?.content}
-                  className="w-full flex items-center gap-2 text-sm"
+                  className="w-full flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-3 rounded-xl"
                 >
-                  {aiContinuing ? <Loader size={14} /> : <FiEdit3 className="w-4 h-4" />}
+                  {aiContinuing ? <Loader size={12} className="sm:w-3.5 sm:h-3.5" /> : <FiEdit3 className="w-3 h-3 sm:w-4 sm:h-4" />}
                   {aiContinuing ? 'Continuing...' : 'Continue Chapter'}
                 </Button>
               </div>
             </Card>
 
-            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter Stats</h4>
+            {/* Chapter Stats */}
+            <Card className="p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter Stats</h4>
               <div className="space-y-2 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
                 <div className="flex justify-between">
                   <span>Words:</span>
@@ -573,8 +813,9 @@ const StoryEditor: React.FC = () => {
               </div>
             </Card>
 
-            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter List</h4>
+            {/* Chapter List */}
+            <Card className="p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter List</h4>
               <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
                 {chapters.map((chapter, index) => (
                   <button
@@ -609,6 +850,54 @@ const StoryEditor: React.FC = () => {
               Create Chapter
             </Button>
             <Button variant="secondary" onClick={() => setShowChapterModal(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      
+      {/* Export Modal */}
+      <Modal isOpen={showExportModal} onClose={() => setShowExportModal(false)} title="Export Story">
+        <div className="space-y-4">
+          <p className="text-blue-900 dark:text-blue-100">
+            Choose the format you'd like to export your story in:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('pdf')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              PDF Document
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('txt')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              Text File (.txt)
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('docx')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              Word Document (.docx)
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => window.print()}
+              className="flex items-center gap-2"
+            >
+              <FiDownload className="w-4 h-4" />
+              Print
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowExportModal(false)}>
               Cancel
             </Button>
           </div>
