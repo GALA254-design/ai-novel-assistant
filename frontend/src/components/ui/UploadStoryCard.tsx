@@ -6,7 +6,11 @@ import Modal from './Modal';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createProject, addChapter } from '../../services/storyService';
-import { extractPdfText } from '../../services/pdfService';
+import * as pdfjsLib from 'pdfjs-dist';
+import { Document, Packer } from 'docx';
+
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
 
 interface UploadStoryCardProps {
   onUpload?: (text: string, file: File) => Promise<void>;
@@ -24,18 +28,71 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
   const inputRef = useRef<HTMLInputElement>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
 
+  // Client-side PDF text extraction
+  const extractPdfTextClient = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = '';
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        text += pageText + '\n';
+      }
+      
+      return text;
+    } catch (error) {
+      console.error('PDF extraction error:', error);
+      throw new Error('Failed to extract text from PDF');
+    }
+  };
+
+  // Client-side DOCX text extraction using server-side as fallback
+  const extractDocxTextClient = async (file: File): Promise<string> => {
+    try {
+      // Use server-side extraction for DOCX since client-side is complex
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/files/extract-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to extract DOCX');
+      }
+      
+      const data = await response.json();
+      return data.text;
+    } catch (error) {
+      console.error('DOCX extraction error:', error);
+      throw new Error('Failed to extract text from DOCX');
+    }
+  };
+
   const handleFile = async (file: File) => {
     setError('');
     setPreview('');
     setFile(file);
     setLoading(true);
     setShowManualEntry(false);
+    
     try {
       let text = '';
       const ext = file.name.toLowerCase().split('.').pop();
+      
       if (ext === 'pdf') {
         try {
-          text = await extractPdfText(file);
+          text = await extractPdfTextClient(file);
+          setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
+          if (onStoryExtracted) onStoryExtracted(text);
+          setLoading(false);
+          return;
         } catch (err) {
           console.error('PDF extraction error:', err);
           setError('PDF cannot be read. Please use a text file or copy-paste your story to continue.');
@@ -46,7 +103,11 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         }
       } else if (ext === 'docx') {
         try {
-          text = await extractPdfText(file);
+          text = await extractDocxTextClient(file);
+          setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
+          if (onStoryExtracted) onStoryExtracted(text);
+          setLoading(false);
+          return;
         } catch (err) {
           console.error('DOCX extraction error:', err);
           setError('Unsupported or unreadable file format (DOCX). You can manually paste the text below.');
@@ -74,6 +135,8 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         } catch (err) {
           setError('Unsupported or unreadable file format (TXT).');
           setFile(null);
+          setLoading(false);
+          return;
         }
       } else {
         setError('Unsupported file type. Please upload a PDF, DOCX, or plain text (.txt) file.');
@@ -81,17 +144,11 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         setLoading(false);
         return;
       }
-      if (text) {
-        setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
-        if (onStoryExtracted) onStoryExtracted(text);
-        setLoading(false);
-        return;
-      }
     } catch (e) {
       setError('Failed to read file.');
       setFile(null);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {

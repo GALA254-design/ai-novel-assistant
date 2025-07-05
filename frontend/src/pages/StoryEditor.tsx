@@ -356,8 +356,8 @@ const StoryEditor: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full mx-auto p-2 sm:p-8 max-w-full">
         {/* Sticky header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-100 via-white to-indigo-100 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shadow-xl rounded-b-2xl mb-6 sm:mb-8">
-          <div className="flex items-center gap-4">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-100 via-white to-indigo-100 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 py-3 sm:py-4 shadow-xl rounded-b-2xl mb-4 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <Button
               variant="secondary"
               onClick={handleBack}
@@ -365,58 +365,62 @@ const StoryEditor: React.FC = () => {
               aria-label="Go back to Dashboard"
             >
               <FiArrowLeft className="w-4 h-4" />
-              Back
+              <span className="hidden sm:inline">Back</span>
             </Button>
-            <h2 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent flex items-center gap-3 tracking-tight">Novel Editor</h2>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent flex items-center gap-3 tracking-tight">Novel Editor</h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-0 w-full sm:w-auto">
             {autoSaving && (
-              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-orange-400">
-                <Loader size={16} />
-                Auto-saving...
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-600 dark:text-orange-400">
+                <Loader size={14} />
+                <span className="hidden sm:inline">Auto-saving...</span>
+                <span className="sm:hidden">Saving...</span>
               </div>
             )}
             {lastSaved && !autoSaving && (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Last saved: {lastSaved.toLocaleTimeString()}
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                <span className="hidden sm:inline">Last saved: {lastSaved.toLocaleTimeString()}</span>
+                <span className="sm:hidden">Saved</span>
               </div>
             )}
             <Button 
               variant="secondary" 
               onClick={() => handleExport('txt')}
               disabled={exporting === 'txt'}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm"
             >
-              {exporting === 'txt' ? <Loader size={16} /> : <FiFileText className="w-4 h-4" />}
-              Export TXT
+              {exporting === 'txt' ? <Loader size={14} /> : <FiFileText className="w-4 h-4" />}
+              <span className="hidden sm:inline">Export TXT</span>
+              <span className="sm:hidden">TXT</span>
             </Button>
             <Button 
               variant="secondary" 
               onClick={() => handleExport('pdf')}
               disabled={exporting === 'pdf'}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm"
             >
-              {exporting === 'pdf' ? <Loader size={16} /> : <FiDownload className="w-4 h-4" />}
-              Export PDF
+              {exporting === 'pdf' ? <Loader size={14} /> : <FiDownload className="w-4 h-4" />}
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
             </Button>
           </div>
         </div>
 
         {/* Story Specifications */}
-        <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-          <h3 className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-4">Story Specifications</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="mb-4 sm:mb-6 p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+          <h3 className="text-lg sm:text-xl font-bold text-blue-700 dark:text-orange-300 mb-3 sm:mb-4">Story Specifications</h3>
+          <div className="space-y-3 sm:space-y-4">
             <input
               name="title"
               value={storyForm.title}
               onChange={handleStoryChange}
               placeholder="Novel Title..."
-              className="w-full text-xl font-bold bg-transparent outline-none border-b-2 border-blue-200 dark:border-orange-700 px-2 py-2"
+              className="w-full text-lg sm:text-xl font-bold bg-transparent outline-none border-b-2 border-blue-200 dark:border-orange-700 px-2 py-2"
               required
             />
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
               <input
-                className="flex-1 px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold"
+                className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
                 name="genre"
                 value={storyForm.genre}
                 onChange={handleStoryChange}
@@ -429,7 +433,7 @@ const StoryEditor: React.FC = () => {
                 ))}
               </datalist>
               <input
-                className="flex-1 px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold"
+                className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
                 name="tone"
                 value={storyForm.tone}
                 onChange={handleStoryChange}
@@ -447,27 +451,28 @@ const StoryEditor: React.FC = () => {
               value={storyForm.description}
               onChange={handleStoryChange}
               placeholder="Story description..."
-              className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-gray-700 dark:text-gray-200 resize-none text-sm sm:text-base"
               rows={3}
             />
           </div>
         </Card>
 
         {/* Chapter Navigation */}
-        <div className="mb-6 flex items-center justify-between bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-4 shadow-xl">
-          <div className="flex items-center gap-4">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-center justify-between bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-3 sm:p-4 shadow-xl">
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto mb-3 sm:mb-0">
             <Button
               variant="secondary"
               onClick={handlePrevChapter}
               disabled={currentChapterIndex === 0}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
               <FiChevronLeft className="w-4 h-4" />
-              Previous Chapter
+              <span className="hidden sm:inline">Previous Chapter</span>
+              <span className="sm:hidden">Prev</span>
             </Button>
             <div className="flex items-center gap-2">
               <FiBook className="w-4 h-4 text-blue-600 dark:text-orange-400" />
-              <span className="font-semibold text-blue-900 dark:text-blue-100">
+              <span className="font-semibold text-blue-900 dark:text-blue-100 text-xs sm:text-sm">
                 {currentChapter?.title || 'No Chapter'}
               </span>
             </div>
@@ -475,33 +480,34 @@ const StoryEditor: React.FC = () => {
               variant="secondary"
               onClick={handleNextChapter}
               disabled={currentChapterIndex === chapters.length - 1}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              Next Chapter
+              <span className="hidden sm:inline">Next Chapter</span>
+              <span className="sm:hidden">Next</span>
               <FiChevronRight className="w-4 h-4" />
             </Button>
           </div>
           <Button
             variant="primary"
             onClick={() => setShowChapterModal(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto text-xs sm:text-sm"
           >
             <FiPlus className="w-4 h-4" />
             Add Chapter
           </Button>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8 sm:gap-12 mt-4">
-          {/* Left: Chapter Editor */}
-          <div className="md:w-3/4 flex-1 min-w-0">
-            <div className="max-w-2xl w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-8 animate-fadeIn">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 mt-4">
+          {/* Left: Chapter Editor - wider on mobile */}
+          <div className="lg:w-3/4 flex-1 min-w-0">
+            <div className="w-full max-w-none lg:max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-4 sm:my-8 animate-fadeIn">
               <div className="flex flex-col gap-4 sm:gap-6">
                 <input
                   name="title"
                   value={currentChapter?.title || ''}
                   onChange={handleChapterChange}
                   placeholder="CHAPTER 1: CHAPTER TITLE"
-                  className="w-full text-xl sm:text-2xl font-bold bg-transparent outline-none px-6 pt-8 pb-2 rounded-t-2xl"
+                  className="w-full text-lg sm:text-xl lg:text-2xl font-bold bg-transparent outline-none px-4 sm:px-6 pt-6 sm:pt-8 pb-2 rounded-t-2xl"
                   autoFocus
                   required
                 />
@@ -511,43 +517,43 @@ const StoryEditor: React.FC = () => {
                   value={currentChapter?.content || ''}
                   onChange={handleChapterChange}
                   placeholder="Write your chapter content here..."
-                  className="w-full min-h-[60vh] bg-transparent outline-none resize-none px-6 pb-8 text-lg sm:text-xl leading-relaxed font-medium rounded-b-2xl"
+                  className="w-full min-h-[50vh] sm:min-h-[60vh] bg-transparent outline-none resize-none px-4 sm:px-6 pb-6 sm:pb-8 text-base sm:text-lg lg:text-xl leading-relaxed font-medium rounded-b-2xl"
                   style={{ fontFamily: 'serif', boxShadow: 'none', border: 'none' }}
                   required
                 />
               </div>
             </div>
           </div>
-          {/* Right: Panels */}
-          <div className="md:w-1/4 w-full flex-shrink-0 flex flex-col gap-6 sticky top-20 self-start min-w-0">
+          {/* Right: Panels - full width on mobile */}
+          <div className="lg:w-1/4 w-full flex-shrink-0 flex flex-col gap-4 sm:gap-6 lg:sticky lg:top-20 lg:self-start min-w-0">
             {/* AI Tools */}
-            <Card className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">AI Tools</h4>
-              <div className="space-y-3">
+            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">AI Tools</h4>
+              <div className="space-y-2 sm:space-y-3">
                 <Button
                   variant="secondary"
                   onClick={handleAiRefine}
                   disabled={aiRefining || !currentChapter?.content}
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 text-sm"
                 >
-                  {aiRefining ? <Loader size={16} /> : <FiZap className="w-4 h-4" />}
+                  {aiRefining ? <Loader size={14} /> : <FiZap className="w-4 h-4" />}
                   {aiRefining ? 'Refining...' : 'Refine Chapter'}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={handleAiContinue}
                   disabled={aiContinuing || !currentChapter?.content}
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 text-sm"
                 >
-                  {aiContinuing ? <Loader size={16} /> : <FiEdit3 className="w-4 h-4" />}
+                  {aiContinuing ? <Loader size={14} /> : <FiEdit3 className="w-4 h-4" />}
                   {aiContinuing ? 'Continuing...' : 'Continue Chapter'}
                 </Button>
               </div>
             </Card>
 
-            <Card className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">Chapter Stats</h4>
-              <div className="space-y-2 text-sm text-blue-900 dark:text-blue-100">
+            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter Stats</h4>
+              <div className="space-y-2 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
                 <div className="flex justify-between">
                   <span>Words:</span>
                   <span className="font-semibold">{wordCount}</span>
@@ -567,20 +573,20 @@ const StoryEditor: React.FC = () => {
               </div>
             </Card>
 
-            <Card className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">Chapter List</h4>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+            <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter List</h4>
+              <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
                 {chapters.map((chapter, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentChapterIndex(index)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-xs sm:text-sm ${
                       index === currentChapterIndex
                         ? 'bg-blue-200 dark:bg-blue-800 text-blue-900 dark:text-blue-100'
                         : 'bg-blue-100/70 dark:bg-blue-900/70 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-900 dark:text-blue-100'
                     }`}
                   >
-                    <div className="font-semibold text-sm">{chapter.title}</div>
+                    <div className="font-semibold truncate">{chapter.title}</div>
                     <div className="text-xs opacity-75">
                       {chapter.content ? `${chapter.content.length} chars` : 'Empty'}
                     </div>
