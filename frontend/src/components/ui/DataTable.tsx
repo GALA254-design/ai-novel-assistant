@@ -118,23 +118,23 @@ export const DataTable: React.FC<DataTableProps> = ({
                   <span className="ml-2 text-slate-900 dark:text-slate-100">{row.updated}</span>
                 </div>
               </div>
-              <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                 <button
-                  className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow transition-all duration-200 text-base flex items-center justify-center gap-2"
+                  className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow transition-all duration-200 text-sm flex items-center justify-center gap-2"
                   onClick={e => { e.stopPropagation(); row.onView && row.onView(); }}
                   aria-label={`View ${row.title}`}
                 >
                   <FiEye /> View
                 </button>
                 <button
-                  className="flex-1 py-2 rounded-xl bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold shadow transition-all duration-200 text-base flex items-center justify-center gap-2"
+                  className="flex-1 py-2 rounded-xl bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold shadow transition-all duration-200 text-sm flex items-center justify-center gap-2"
                   onClick={e => { e.stopPropagation(); row.onPreview && row.onPreview(); }}
                   aria-label={`Preview ${row.title}`}
                 >
                   <FiEye /> Preview
                 </button>
                 <button
-                  className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow transition-all duration-200 text-base flex items-center justify-center gap-2"
+                  className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow transition-all duration-200 text-sm flex items-center justify-center gap-2"
                   onClick={e => { e.stopPropagation(); row.onDelete && row.onDelete(); }}
                   aria-label={`Delete ${row.title}`}
                 >
