@@ -1,33 +1,36 @@
 import React from 'react';
 
-// Loader/Spinner component for async actions
-const Loader: React.FC<{ size?: number; className?: string; color?: string }> = ({ size = 24, className = '', color }) => (
-  <svg
-    className={`animate-spin text-primary ${className}`}
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
+// Premium Loader/Spinner component for async actions
+const Loader: React.FC<{ size?: number; className?: string; color?: string }> = ({ size = 32, className = '', color }) => (
+  <span
+    className={`inline-flex items-center justify-center ${className}`}
     role="status"
     aria-label="Loading"
     aria-busy="true"
-    style={color ? { color } : {}}
   >
-    <circle
-      className="opacity-25"
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-    />
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-    />
-  </svg>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 50 50"
+      fill="none"
+      className="animate-spin-slow text-blue-600 dark:text-blue-400 drop-shadow-lg"
+      style={color ? { color } : {}}
+    >
+      <circle
+        className="opacity-20"
+        cx="25"
+        cy="25"
+        r="20"
+        stroke="currentColor"
+        strokeWidth="6"
+      />
+      <path
+        className="opacity-80"
+        fill="currentColor"
+        d="M25 5a20 20 0 0 1 20 20h-6a14 14 0 0 0-14-14V5z"
+      />
+    </svg>
+  </span>
 );
 
 export default Loader; 

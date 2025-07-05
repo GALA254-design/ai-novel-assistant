@@ -150,12 +150,15 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
   }
 
   return (
-    <div className="bg-white dark:bg-blue-950 border-2 border-dashed border-blue-300 dark:border-orange-400 rounded-2xl p-6 shadow-xl mb-8 animate-fadeIn">
-      <h3 className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-2 flex items-center gap-2">
-        <FiUpload className="inline-block" /> Upload PDF or Text Story
+    <div className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-2 border-dashed border-blue-300 dark:border-orange-400 rounded-3xl p-8 sm:p-10 shadow-2xl mb-10 animate-fadeIn transition-all duration-300">
+      <h3 className="text-2xl font-extrabold text-blue-700 dark:text-orange-300 mb-4 flex items-center gap-3 tracking-tight">
+        <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-orange-400 dark:to-pink-600 shadow-lg mr-2">
+          <FiUpload className="w-7 h-7 text-white" />
+        </span>
+        Upload PDF or Text Story
       </h3>
       <div
-        className={`flex flex-col items-center justify-center border-2 rounded-xl border-dashed transition-all duration-200 p-6 mb-4 w-full cursor-pointer ${dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40' : 'border-blue-200 dark:border-orange-700 bg-white dark:bg-blue-950'}`}
+        className={`flex flex-col items-center justify-center border-2 rounded-2xl border-dashed transition-all duration-200 p-8 sm:p-10 mb-6 w-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 ${dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/40' : 'border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80'}`}
         onDragOver={e => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={e => { e.preventDefault(); setDragActive(false); }}
         onDrop={handleDrop}
@@ -171,31 +174,31 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           ref={inputRef}
           onChange={handleChange}
         />
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-3">
           {file ? (
             <>
-              {(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) ? <FiFile className="w-8 h-8 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-8 h-8 text-blue-500 dark:text-orange-300" />}
-              <span className="font-medium text-blue-700 dark:text-orange-200">{file.name}</span>
+              {(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) ? <FiFile className="w-10 h-10 text-blue-500 dark:text-orange-300" /> : <FiFileText className="w-10 h-10 text-blue-500 dark:text-orange-300" />}
+              <span className="font-semibold text-blue-700 dark:text-orange-200 text-lg">{file.name}</span>
             </>
           ) : (
             <>
-              <FiUpload className="w-8 h-8 text-blue-400 dark:text-orange-400" />
-              <span className="text-blue-500 dark:text-orange-200">Drag & drop or click to select a PDF, DOCX, or .txt file</span>
+              <FiUpload className="w-10 h-10 text-blue-400 dark:text-orange-400" />
+              <span className="text-blue-600 dark:text-orange-200 text-base font-medium text-center">Drag & drop or click to select a PDF, DOCX, or .txt file</span>
             </>
           )}
         </div>
       </div>
-      {loading && <Loader className="my-2" />}
-      {error && <div className="text-red-600 dark:text-pink-400 mb-2">{error}</div>}
+      {loading && <Loader className="my-4" />}
+      {error && <div className="text-red-600 dark:text-pink-400 mb-3 text-base font-semibold">{error}</div>}
       {preview && (
-        <div className="bg-blue-50 dark:bg-blue-900/60 rounded-lg p-4 mb-2 max-h-48 overflow-auto text-sm text-blue-900 dark:text-blue-100 shadow-inner">
-          <div className="font-bold mb-1">Preview:</div>
-          <pre className="whitespace-pre-wrap break-words">{preview}</pre>
+        <div className="bg-blue-50 dark:bg-blue-900/60 rounded-xl p-5 mb-3 max-h-56 overflow-auto text-base text-blue-900 dark:text-blue-100 shadow-inner border border-blue-100 dark:border-blue-800">
+          <div className="font-bold mb-2">Preview:</div>
+          <pre className="whitespace-pre-wrap break-words font-mono text-sm">{preview}</pre>
         </div>
       )}
       <Button
         variant="primary"
-        className="w-full mt-2"
+        className="w-full mt-3 text-lg font-bold py-3 shadow-lg hover:shadow-2xl transition-all duration-200"
         onClick={handleUpload ? () => handleUpload(preview, file!) : undefined}
         disabled={!file || !preview || loading}
       >

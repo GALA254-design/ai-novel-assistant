@@ -11,6 +11,7 @@ import { useToast } from '../components/ui/Toast';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { FiArrowLeft, FiEdit, FiSave, FiDownload, FiFileText, FiFile, FiFileImage } from 'react-icons/fi';
 
 const StoryView: React.FC = () => {
   const { user } = useAuth();
@@ -173,106 +174,159 @@ const StoryView: React.FC = () => {
 
   if (story) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] p-4">
+      <div className="w-full animate-fadeIn">
+        {/* Back button */}
+        <div className="mb-6">
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+            aria-label="Go back to Dashboard"
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+
         <div className="w-full max-w-4xl mx-auto">
-          <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4 w-full sm:w-auto">&larr; Back to Dashboard</Button>
-          <Card className="mb-6 p-6 flex flex-col gap-4">
-            <div className="flex gap-2 mb-2">
-              <Button variant="secondary" onClick={() => {
-                const blob = new Blob([story.content], { type: 'text/plain;charset=utf-8' });
-                saveAs(blob, `${story.title || 'story'}.txt`);
-              }}>Export as TXT</Button>
-              <Button variant="secondary" onClick={() => {
-                const doc = new Document({
-                  sections: [
-                    {
-                      properties: {},
-                      children: [
-                        new Paragraph({
-                          children: [
-                            new TextRun(story.title || ''),
-                          ],
-                          heading: 'Heading1',
-                        }),
-                        new Paragraph(story.content || ''),
-                      ],
-                    },
-                  ],
-                });
-                Packer.toBlob(doc).then(blob => {
-                  saveAs(blob, `${story.title || 'story'}.docx`);
-                });
-              }}>Export as DOCX</Button>
-              <Button variant="secondary" onClick={() => {
-                const doc = new jsPDF();
-                doc.setFontSize(16);
-                doc.text(story.title || '', 10, 20);
-                doc.setFontSize(12);
-                const splitText = doc.splitTextToSize(story.content || '', 180);
-                doc.text(splitText, 10, 30);
-                doc.save(`${story.title || 'story'}.pdf`);
-              }}>Export as PDF</Button>
+          <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  const blob = new Blob([story.content], { type: 'text/plain;charset=utf-8' });
+                  saveAs(blob, `${story.title || 'story'}.txt`);
+                }}
+                className="flex items-center gap-2"
+              >
+                <FiFileText className="w-4 h-4" />
+                Export as TXT
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  const doc = new Document({
+                    sections: [
+                      {
+                        properties: {},
+                        children: [
+                          new Paragraph({
+                            children: [
+                              new TextRun(story.title || ''),
+                            ],
+                            heading: 'Heading1',
+                          }),
+                          new Paragraph(story.content || ''),
+                        ],
+                      },
+                    ],
+                  });
+                  Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, `${story.title || 'story'}.docx`);
+                  });
+                }}
+                className="flex items-center gap-2"
+              >
+                <FiFile className="w-4 h-4" />
+                Export as DOCX
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  const doc = new jsPDF();
+                  doc.setFontSize(16);
+                  doc.text(story.title || '', 10, 20);
+                  doc.setFontSize(12);
+                  const splitText = doc.splitTextToSize(story.content || '', 180);
+                  doc.text(splitText, 10, 30);
+                  doc.save(`${story.title || 'story'}.pdf`);
+                }}
+                className="flex items-center gap-2"
+              >
+                <FiDownload className="w-4 h-4" />
+                Export as PDF
+              </Button>
               {editMode && (
-                <Button variant="primary" onClick={handleSave}>Save Story</Button>
+                <Button variant="primary" onClick={handleSave} className="flex items-center gap-2">
+                  <FiSave className="w-4 h-4" />
+                  Save Story
+                </Button>
               )}
             </div>
+
+            {/* Story content */}
             {editMode ? (
-              <>
+              <div className="space-y-4">
                 <input
-                  className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
+                  className="w-full text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-orange-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                   name="title"
                   value={form.title || ''}
                   onChange={handleChange}
+                  placeholder="Story title..."
                 />
-                <input
-                  className="text-blue-500 dark:text-orange-200 mb-1 font-semibold bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="genre"
-                  value={form.genre || ''}
-                  onChange={handleChange}
-                />
-                <input
-                  className="text-blue-500 dark:text-orange-200 mb-1 font-semibold bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="tone"
-                  value={form.tone || ''}
-                  onChange={handleChange}
-                />
+                <div className="flex gap-4">
+                  <input
+                    className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                    name="genre"
+                    value={form.genre || ''}
+                    onChange={handleChange}
+                    placeholder="Genre..."
+                  />
+                  <input
+                    className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                    name="tone"
+                    value={form.tone || ''}
+                    onChange={handleChange}
+                    placeholder="Tone..."
+                  />
+                </div>
                 <textarea
-                  className="prose prose-blue dark:prose-invert max-w-none text-base leading-relaxed text-gray-900 dark:text-gray-100 bg-white/80 dark:bg-blue-950/80 rounded-lg p-4 shadow-inner animate-fadeIn whitespace-pre-line border border-blue-200 dark:border-orange-700"
+                  className="w-full min-h-[400px] prose prose-blue dark:prose-invert max-w-none text-base leading-relaxed text-gray-900 dark:text-gray-100 bg-white/80 dark:bg-blue-950/80 rounded-xl p-6 shadow-inner border border-blue-200 dark:border-orange-700 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200 resize-y"
                   name="content"
                   value={form.content || ''}
                   onChange={handleChange}
-                  rows={12}
+                  placeholder="Write your story here..."
                 />
-                <div className="flex gap-2 mt-2">
-                  <Button variant="primary" onClick={handleSave}>Save</Button>
+                <div className="flex gap-2 mt-4">
+                  <Button variant="primary" onClick={handleSave} className="flex items-center gap-2">
+                    <FiSave className="w-4 h-4" />
+                    Save
+                  </Button>
                   <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{story.title}</h2>
-                  <Button variant="primary" onClick={() => setEditMode(true)}>Edit</Button>
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{story.title}</h2>
+                    <div className="text-blue-500 dark:text-orange-200 mb-4 font-semibold">{story.genre} &middot; {story.tone}</div>
+                  </div>
+                  <Button variant="primary" onClick={() => setEditMode(true)} className="flex items-center gap-2">
+                    <FiEdit className="w-4 h-4" />
+                    Edit
+                  </Button>
                 </div>
-                <div className="text-blue-500 dark:text-orange-200 mb-1 font-semibold">{story.genre} &middot; {story.tone}</div>
-                <div className="prose prose-blue dark:prose-invert max-w-none text-base leading-relaxed text-gray-900 dark:text-gray-100 bg-white/80 dark:bg-blue-950/80 rounded-lg p-4 shadow-inner animate-fadeIn whitespace-pre-line">
+                <div className="prose prose-blue dark:prose-invert max-w-none text-base leading-relaxed text-gray-900 dark:text-gray-100 bg-white/80 dark:bg-blue-950/80 rounded-xl p-6 shadow-inner border border-blue-200 dark:border-orange-700 whitespace-pre-line">
                   {story.content}
                 </div>
-              </>
+              </div>
             )}
           </Card>
+
           {storyText && (
-            <Card className="mb-6 p-6 flex flex-col gap-4">
-              <h2 className="text-2xl font-bold mb-2">Generated Story</h2>
+            <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
+              <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">Generated Story</h2>
               {chaptersParsed.length > 0 ? (
                 chaptersParsed.map((chapter, idx) => (
-                  <div key={idx} className="mb-4">
-                    <h3 className="text-lg font-semibold mb-1">{chapter.split(':')[0]}</h3>
-                    <pre className="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-2 rounded">{chapter.slice(chapter.indexOf(':') + 1)}</pre>
+                  <div key={idx} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-semibold mb-2 text-blue-700 dark:text-orange-300">{chapter.split(':')[0]}</h3>
+                    <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed">{chapter.slice(chapter.indexOf(':') + 1)}</div>
                   </div>
                 ))
               ) : (
-                <pre className="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-2 rounded">{storyText}</pre>
+                <div className="whitespace-pre-wrap bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 leading-relaxed">{storyText}</div>
               )}
             </Card>
           )}
@@ -282,69 +336,101 @@ const StoryView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] p-4">
+    <div className="w-full animate-fadeIn">
+      {/* Back button */}
+      <div className="mb-6">
+        <Button
+          variant="secondary"
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label="Go back to Dashboard"
+        >
+          <FiArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Button>
+      </div>
+
       <div className="w-full max-w-4xl mx-auto">
-        <Button variant="secondary" onClick={() => navigate('/dashboard')} className="mb-4 w-full sm:w-auto">&larr; Back to Dashboard</Button>
-        <Card className="mb-6 p-4 sm:p-6 flex flex-col gap-4 w-full">
-          {project.coverImage && (
-            <img src={project.coverImage} alt="Cover" className="w-32 h-44 object-cover rounded-lg shadow" />
-          )}
-          <div className="flex-1">
-            {editMode ? (
-              <>
-                <input
-                  className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="title"
-                  value={form.title || ''}
-                  onChange={handleChange}
-                />
-                <input
-                  className="text-blue-500 dark:text-orange-200 mb-1 font-semibold bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="genre"
-                  value={form.genre || ''}
-                  onChange={handleChange}
-                />
-                <input
-                  className="text-blue-500 dark:text-orange-200 mb-1 font-semibold bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="status"
-                  value={form.status || ''}
-                  onChange={handleChange}
-                />
-                <textarea
-                  className="text-gray-700 dark:text-gray-200 mb-2 bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
-                  name="description"
-                  value={form.description || ''}
-                  onChange={handleChange}
-                  rows={3}
-                />
-                <div className="flex gap-2 mt-2">
-                  <Button variant="primary" onClick={handleSave}>Save</Button>
-                  <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{project.title}</h2>
-                  <Button variant="primary" onClick={() => { setEditMode(true); setChapterEditMode(true); }}>Edit</Button>
-                </div>
-                <div className="text-blue-500 dark:text-orange-200 mb-1 font-semibold">{project.genre} &middot; {project.status}</div>
-                <div className="text-gray-700 dark:text-gray-200 mb-2">{project.description}</div>
-              </>
+        {/* Project info */}
+        <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
+          <div className="flex gap-6">
+            {project.coverImage && (
+              <img src={project.coverImage} alt="Cover" className="w-32 h-44 object-cover rounded-xl shadow-lg" />
             )}
+            <div className="flex-1">
+              {editMode ? (
+                <div className="space-y-4">
+                  <input
+                    className="w-full text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-orange-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                    name="title"
+                    value={form.title || ''}
+                    onChange={handleChange}
+                    placeholder="Project title..."
+                  />
+                  <div className="flex gap-4">
+                    <input
+                      className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                      name="genre"
+                      value={form.genre || ''}
+                      onChange={handleChange}
+                      placeholder="Genre..."
+                    />
+                    <input
+                      className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                      name="status"
+                      value={form.status || ''}
+                      onChange={handleChange}
+                      placeholder="Status..."
+                    />
+                  </div>
+                  <textarea
+                    className="w-full px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200 resize-y"
+                    name="description"
+                    value={form.description || ''}
+                    onChange={handleChange}
+                    placeholder="Project description..."
+                    rows={3}
+                  />
+                  <div className="flex gap-2">
+                    <Button variant="primary" onClick={handleSave} className="flex items-center gap-2">
+                      <FiSave className="w-4 h-4" />
+                      Save
+                    </Button>
+                    <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-3xl font-bold text-blue-700 dark:text-orange-300 mb-2">{project.title}</h2>
+                      <div className="text-blue-500 dark:text-orange-200 mb-2 font-semibold">{project.genre} &middot; {project.status}</div>
+                      <div className="text-gray-700 dark:text-gray-200">{project.description}</div>
+                    </div>
+                    <Button variant="primary" onClick={() => { setEditMode(true); setChapterEditMode(true); }} className="flex items-center gap-2">
+                      <FiEdit className="w-4 h-4" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
-        <Card className="mb-6 p-6">
+
+        {/* Chapters */}
+        <Card className="mb-6 p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
           <h3 className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-4">Chapters</h3>
           {chapters.length === 0 ? (
-            <div className="text-blue-500 dark:text-blue-200">No chapters yet.</div>
+            <div className="text-blue-500 dark:text-blue-200 text-center py-8">No chapters yet.</div>
           ) : (
             <>
-              <pre style={{ color: 'red', fontSize: 12 }}>{JSON.stringify(chapters, null, 2)}</pre>
-              <div className="flex items-center gap-4 mb-4">
-                <Button variant="secondary" onClick={handlePrevChapter} disabled={selectedChapterIndex === 0}>Previous</Button>
+              <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Button variant="secondary" onClick={handlePrevChapter} disabled={selectedChapterIndex === 0} className="flex items-center gap-2">
+                  Previous
+                </Button>
                 <select
-                  className="px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow"
+                  className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                   value={selectedChapterIndex}
                   onChange={handleChapterChange}
                 >
@@ -352,36 +438,45 @@ const StoryView: React.FC = () => {
                     <option key={ch.id} value={idx}>Chapter {ch.chapterNumber}: {ch.title}</option>
                   ))}
                 </select>
-                <Button variant="secondary" onClick={handleNextChapter} disabled={selectedChapterIndex === chapters.length - 1}>Next</Button>
-                <Button variant="primary" onClick={() => setChapterEditMode(e => !e)}>{chapterEditMode ? 'Cancel Edit' : 'Edit Chapter'}</Button>
+                <Button variant="secondary" onClick={handleNextChapter} disabled={selectedChapterIndex === chapters.length - 1} className="flex items-center gap-2">
+                  Next
+                </Button>
+                <Button variant="primary" onClick={() => setChapterEditMode(e => !e)} className="flex items-center gap-2">
+                  <FiEdit className="w-4 h-4" />
+                  {chapterEditMode ? 'Cancel Edit' : 'Edit Chapter'}
+                </Button>
                 {chapterEditMode && (
-                  <Button variant="primary" onClick={handleChapterSave}>Save</Button>
+                  <Button variant="primary" onClick={handleChapterSave} className="flex items-center gap-2">
+                    <FiSave className="w-4 h-4" />
+                    Save
+                  </Button>
                 )}
               </div>
               {chapterEditMode ? (
-                <>
-                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Editing Chapter {chapters[selectedChapterIndex].chapterNumber}</div>
+                <div className="space-y-4">
+                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Editing Chapter {chapters[selectedChapterIndex].chapterNumber}</div>
                   <input
-                    className="text-xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white dark:bg-blue-950 border border-blue-200 dark:border-orange-700 rounded px-2 py-1"
+                    className="w-full text-xl font-bold text-blue-700 dark:text-orange-300 mb-2 bg-white/80 dark:bg-blue-950/80 border border-blue-200 dark:border-orange-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                     name="title"
                     value={chapterForm.title}
                     onChange={handleChapterFormChange}
+                    placeholder="Chapter title..."
                   />
                   <textarea
-                    className="whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-lg p-4 shadow-inner mb-2 border border-blue-200 dark:border-orange-700"
+                    className="w-full min-h-[400px] whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-xl p-6 shadow-inner border border-blue-200 dark:border-orange-700 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200 resize-y"
                     name="content"
                     value={chapterForm.content}
                     onChange={handleChapterFormChange}
-                    rows={10}
+                    placeholder="Write your chapter content here..."
                   />
-                </>
+                </div>
               ) : (
-                <>
-                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Chapter {chapters[selectedChapterIndex].chapterNumber}: {chapters[selectedChapterIndex].title}</div>
-                  <div className="whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-lg p-4 shadow-inner">
+                <div className="space-y-4">
+                  <div className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Chapter {chapters[selectedChapterIndex].chapterNumber}: {chapters[selectedChapterIndex].title}</div>
+                  <div className="whitespace-pre-line text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-900/60 rounded-xl p-6 shadow-inner border border-blue-200 dark:border-orange-700 leading-relaxed">
                     {chapters[selectedChapterIndex].content}
                   </div>
-                </>
+                </div>
               )}
             </>
           )}

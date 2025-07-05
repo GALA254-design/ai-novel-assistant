@@ -4,9 +4,9 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Loader from '../components/ui/Loader';
-import { HiOutlineBold, HiOutlineItalic, HiOutlineUnderline, HiOutlineSparkles } from 'react-icons/hi2';
-import { FiFileText, FiDownload, FiZap, FiPlus } from 'react-icons/fi';
-import { useParams } from 'react-router-dom';
+import { HiOutlineBold, HiOutlineItalic, HiOutlineUnderline } from 'react-icons/hi2';
+import { FiFileText, FiDownload, FiZap, FiPlus, FiArrowLeft, FiSave, FiEye } from 'react-icons/fi';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { updateProject, updateChapter, getChapters, createStory } from '../services/storyService';
 import jsPDF from 'jspdf';
@@ -32,13 +32,29 @@ const StoryEditor: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [exporting, setExporting] = useState<'pdf' | 'txt' | null>(null);
   const [loading, setLoading] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { user } = useAuth();
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [chapters, setChapters] = useState<any[]>([]);
   const [chapterId, setChapterId] = useState<string | null>(null);
 
   // Add ref for textarea
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Auto-save functionality
+  useEffect(() => {
+    if (form.title || form.content) {
+      setAutoSaving(true);
+      const timer = setTimeout(() => {
+        // Simulate auto-save
+        setLastSaved(new Date());
+        setAutoSaving(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [form.title, form.content]);
 
   // Fetch chapters on load
   useEffect(() => {
@@ -139,18 +155,46 @@ const StoryEditor: React.FC = () => {
   const wordCount = form.content.trim() ? form.content.trim().split(/\s+/).length : 0;
   const charCount = form.content.length;
 
+  const handleBack = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826]">
       <div className="w-full mx-auto p-4 md:p-8 md:max-w-6xl">
         {/* Sticky header */}
-        <div className="sticky top-0 z-10 bg-white/80 dark:bg-[#232946]/80 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex items-center justify-between px-4 py-2 shadow">
-          <h2 className="text-2xl font-bold text-blue-700 dark:text-orange-300">Story Editor</h2>
-          <Button variant="primary" icon={<FiPlus />}>New Story</Button>
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-100 via-white to-indigo-100 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 backdrop-blur-md border-b border-blue-100 dark:border-blue-900 flex items-center justify-between px-6 py-4 shadow-xl rounded-b-2xl mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="secondary"
+              onClick={handleBack}
+              className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+              aria-label="Go back to Dashboard"
+            >
+              <FiArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent flex items-center gap-3 tracking-tight">Story Editor</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            {autoSaving && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-orange-400">
+                <Loader size={16} />
+                Auto-saving...
+              </div>
+            )}
+            {lastSaved && !autoSaving && (
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Last saved: {lastSaved.toLocaleTimeString()}
+              </div>
+            )}
+            <Button variant="primary" icon={<FiPlus />}>New Story</Button>
+          </div>
         </div>
         <div className="flex flex-col md:flex-row gap-12 mt-4">
           {/* Left: Editor with tabs */}
           <div className="md:w-3/4 flex-1 min-w-0">
-            <Card className="p-0 overflow-hidden w-full">
+            <Card className="p-8 sm:p-10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 rounded-3xl shadow-2xl w-full mb-10 animate-fadeIn">
                 <form className="flex flex-col gap-6 p-4 sm:p-6" onSubmit={handleSubmit}>
                   <Input
                     label="Title"
@@ -163,7 +207,7 @@ const StoryEditor: React.FC = () => {
                 <div>
                   <label className="block font-medium text-gray-700 dark:text-gray-200 mb-1">Genre</label>
                   <select
-                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                     value={genreOptions.includes(form.genre) ? form.genre : 'Other'}
                     onChange={e => {
                       const value = e.target.value;
@@ -177,7 +221,7 @@ const StoryEditor: React.FC = () => {
                   {(!genreOptions.includes(form.genre) || form.genre === '') && (
                     <input
                       type="text"
-                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                       placeholder="Enter custom genre"
                       value={form.genre}
                       onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
@@ -188,7 +232,7 @@ const StoryEditor: React.FC = () => {
                 <div>
                   <label className="block font-medium text-gray-700 dark:text-gray-200 mb-1">Tone</label>
                   <select
-                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
+                    className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                     value={toneOptions.includes(form.tone) ? form.tone : 'Other'}
                     onChange={e => {
                       const value = e.target.value;
@@ -202,7 +246,7 @@ const StoryEditor: React.FC = () => {
                   {(!toneOptions.includes(form.tone) || form.tone === '') && (
                     <input
                       type="text"
-                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100"
+                      className="w-full mt-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                       placeholder="Enter custom tone"
                       value={form.tone}
                       onChange={e => setForm(f => ({ ...f, tone: e.target.value }))}
@@ -211,12 +255,12 @@ const StoryEditor: React.FC = () => {
                   )}
                 </div>
                   {/* Toolbar */}
-                  <div className="flex gap-2 mb-2 items-center">
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Bold" title="Bold (Ctrl+B)" onClick={() => applyFormat('bold')}><HiOutlineBold className="w-5 h-5" /></button>
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Italic" title="Italic (Ctrl+I)" onClick={() => applyFormat('italic')}><HiOutlineItalic className="w-5 h-5" /></button>
-                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200" aria-label="Underline" title="Underline (Ctrl+U)" onClick={() => applyFormat('underline')}><HiOutlineUnderline className="w-5 h-5" /></button>
+                  <div className="flex gap-2 mb-2 items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Bold" title="Bold (Ctrl+B)" onClick={() => applyFormat('bold')}><HiOutlineBold className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Italic" title="Italic (Ctrl+I)" onClick={() => applyFormat('italic')}><HiOutlineItalic className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 shadow transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Underline" title="Underline (Ctrl+U)" onClick={() => applyFormat('underline')}><HiOutlineUnderline className="w-5 h-5" /></button>
                     <span className="mx-2 h-6 border-l border-blue-200 dark:border-blue-800" />
-                    <button type="button" className="p-2 rounded-xl bg-gradient-to-r from-pink-400 to-orange-400 text-white hover:from-pink-500 hover:to-orange-500 shadow transition-all duration-200" aria-label="Refine with AI" title="Refine with AI" onClick={handleRefine}><HiOutlineSparkles className="w-5 h-5" /></button>
+                    <button type="button" className="p-2 rounded-xl bg-gradient-to-r from-pink-400 to-orange-400 text-white hover:from-pink-500 hover:to-orange-500 shadow transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500" aria-label="Refine with AI" title="Refine with AI" onClick={handleRefine}><FiZap className="w-5 h-5" /></button>
                   </div>
                   {/* Editor area */}
                   <div className="relative">
@@ -227,7 +271,7 @@ const StoryEditor: React.FC = () => {
                       value={form.content}
                       onChange={handleChange}
                       placeholder="Write your story here..."
-                      className="w-full min-h-[180px] px-4 py-3 rounded-xl shadow border border-blue-100 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
+                      className="w-full min-h-[180px] px-4 py-3 rounded-xl shadow border border-blue-100 dark:border-blue-800 bg-white/80 dark:bg-blue-950/80 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300 resize-y"
                       required
                     />
                     {/* Shimmer/placeholder animation for loading/generation */}
@@ -238,9 +282,20 @@ const StoryEditor: React.FC = () => {
                     )}
                   </div>
                   {/* Word/Char Count */}
-                  <div className="flex justify-end gap-4 text-sm text-blue-500 dark:text-orange-300 font-mono">
-                    <span><FiFileText className="inline-block mr-1" />{wordCount} words</span>
-                    <span><FiFileText className="inline-block mr-1" />{charCount} chars</span>
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-4 text-sm text-blue-500 dark:text-orange-300 font-mono">
+                      <span className="flex items-center gap-1"><FiFileText className="w-4 h-4" />{wordCount} words</span>
+                      <span className="flex items-center gap-1"><FiFileText className="w-4 h-4" />{charCount} chars</span>
+                    </div>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="flex items-center gap-2"
+                      disabled={!form.title || !form.content}
+                    >
+                      <FiSave className="w-4 h-4" />
+                      Save Story
+                    </Button>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 mb-2">
                     <Button variant="secondary" onClick={() => handleExport('pdf')} disabled={exporting === 'pdf'}>
@@ -253,9 +308,6 @@ const StoryEditor: React.FC = () => {
                     </Button>
                   </div>
                 <div className="flex gap-2">
-                  <Button type="submit" variant="primary">
-                    Save Story
-                  </Button>
                   <Button type="button" variant="secondary" onClick={() => setForm({ title: '', content: '', genre: '', tone: '' })}>
                     Clear
                   </Button>
@@ -265,13 +317,13 @@ const StoryEditor: React.FC = () => {
           </div>
           {/* Right: Panels */}
           <div className="md:w-1/4 w-full flex-shrink-0 flex flex-col gap-6 sticky top-20 self-start min-w-0">
-            <Card className="p-4">
-              <h4 className="font-bold mb-2">Prompt Templates</h4>
+            <Card className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">Prompt Templates</h4>
               <ul className="space-y-2">
                 {promptTemplates.map((prompt, i) => (
                   <li key={i}>
                     <button
-                      className="w-full text-left px-3 py-2 rounded-lg bg-blue-100/70 dark:bg-blue-900/70 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-900 dark:text-blue-100 font-medium transition-all duration-200"
+                      className="w-full text-left px-3 py-2 rounded-lg bg-blue-100/70 dark:bg-blue-900/70 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-900 dark:text-blue-100 font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       onClick={() => setForm(f => ({ ...f, content: f.content + (f.content ? '\n' : '') + prompt }))}
                       type="button"
                     >
@@ -281,12 +333,21 @@ const StoryEditor: React.FC = () => {
                 ))}
               </ul>
             </Card>
-            <Card className="p-4">
-              <h4 className="font-bold mb-2">Recent Stories</h4>
+            <Card className="p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
+              <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent">Recent Stories</h4>
               <ul className="space-y-2 text-blue-900 dark:text-blue-100">
-                <li>AI Dreams</li>
-                <li>The Lost City</li>
-                <li>Midnight Library</li>
+                <li className="flex items-center gap-2 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors duration-200">
+                  <FiEye className="w-4 h-4" />
+                  AI Dreams
+                </li>
+                <li className="flex items-center gap-2 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors duration-200">
+                  <FiEye className="w-4 h-4" />
+                  The Lost City
+                </li>
+                <li className="flex items-center gap-2 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer transition-colors duration-200">
+                  <FiEye className="w-4 h-4" />
+                  Midnight Library
+                </li>
               </ul>
             </Card>
           </div>

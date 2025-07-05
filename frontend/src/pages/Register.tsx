@@ -5,17 +5,16 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import googleLogo from '../assets/google.svg';
+import { FiUser, FiMail, FiLock, FiArrowRight, FiCheck } from 'react-icons/fi';
 
 const Register: React.FC = () => {
-  // Destructure the 'register' function, 'loading' state, and 'error' state from useAuth
   const { register, loading, error: authError, loginWithGoogle } = useAuth();
-  const navigate = useNavigate(); // Initialize navigate hook
+  const navigate = useNavigate();
 
-  // Initialize form state with 'name', 'email', 'password', and 'confirm'
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
-  const [formError, setFormError] = useState<string | null>(null); // For local form validation errors
+  const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,20 +23,17 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null); // Clear previous local form errors
-    setSuccess(false); // Clear previous success state
+    setFormError(null);
+    setSuccess(false);
 
-    // Basic client-side validation: passwords must match
     if (form.password !== form.confirm) {
       setFormError('Passwords do not match');
       return;
     }
 
-    // Call the actual register function from AuthContext
     const isSuccess = await register(form.email, form.password);
 
     if (isSuccess) {
-      // Set display name after registration
       if (typeof window !== 'undefined') {
         const { auth } = await import('../firebase');
         const { updateProfile } = await import('firebase/auth');
@@ -46,59 +42,86 @@ const Register: React.FC = () => {
         }
       }
       setSuccess(true);
-      // Optional: Redirect to login page after a short delay for user to read success message
       setTimeout(() => {
         navigate('/login');
-      }, 2000); // Redirect after 2 seconds
-    } else {
-      // The error state will be handled by `authError` from `useAuth`
-      // No need to set a separate `setError` here as `authError` will display
+      }, 2000);
     }
   };
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-br from-[#1a2236] via-[#232946] to-[#121826] dark:from-[#181c2a] dark:via-[#232946] dark:to-[#121826] flex flex-col items-center justify-center">
-      <div className="w-full max-w-lg mx-auto p-4 md:p-8 flex flex-col items-center justify-center">
-        <Card className="w-full p-6 md:p-8 bg-white/80 dark:bg-blue-950/80 backdrop-blur-md border border-blue-200 dark:border-blue-900 shadow-2xl">
-          <h2 className="text-3xl font-heading font-bold mb-6 text-center text-[#232946] dark:text-white tracking-tight">Register</h2>
-          <Button type="button" variant="secondary" className="w-full mb-4 flex items-center justify-center gap-2 border-2 border-blue-400 dark:border-orange-400 bg-white dark:bg-blue-950 text-blue-700 dark:text-orange-300 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-200" onClick={loginWithGoogle} disabled={loading}>
+    <div className="w-screen min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center mx-auto mb-4">
+            <FiUser className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            Join AI Novel Crafter
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Start your creative writing journey today
+          </p>
+        </div>
+
+        <Card className="w-full p-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-2xl">
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full mb-6 flex items-center justify-center gap-3 py-3 text-base font-semibold border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200" 
+            onClick={loginWithGoogle} 
+            disabled={loading}
+          >
             <img src={googleLogo} alt="Google logo" className="w-5 h-5" />
-            Register with Google
+            Continue with Google
           </Button>
-          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-            {/* Input for User's Name */}
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                Or register with email
+              </span>
+            </div>
+          </div>
+
+          <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
             <Input
-              label="Name"
+              label="Full Name"
               name="name"
               value={form.name}
               onChange={handleChange}
               placeholder="Enter your full name"
               autoComplete="name"
+              leftIcon={<FiUser className="w-4 h-4" />}
               required
             />
-            {/* Input for User's Email */}
+            
             <Input
-              label="Email"
+              label="Email Address"
               name="email"
-              type="email" // Use type="email" for better browser validation
+              type="email"
               value={form.email}
               onChange={handleChange}
               placeholder="Enter your email address"
               autoComplete="email"
+              leftIcon={<FiMail className="w-4 h-4" />}
               required
             />
-            {/* Input for Password */}
+            
             <Input
               label="Password"
               name="password"
               type="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Create a password"
+              placeholder="Create a strong password"
               autoComplete="new-password"
+              leftIcon={<FiLock className="w-4 h-4" />}
               required
             />
-            {/* Input for Confirm Password */}
+            
             <Input
               label="Confirm Password"
               name="confirm"
@@ -107,26 +130,43 @@ const Register: React.FC = () => {
               onChange={handleChange}
               placeholder="Confirm your password"
               autoComplete="new-password"
+              leftIcon={<FiLock className="w-4 h-4" />}
               required
             />
-            {/* Display local form errors or authentication errors from context */}
+            
             {(formError || authError) && (
-              <div className="text-danger text-sm text-center font-semibold dark:text-pink-400">
+              <div className="text-red-600 dark:text-red-400 text-sm font-semibold bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl border border-red-200 dark:border-red-800">
                 {formError || authError}
               </div>
             )}
-            {/* Display success message */}
+            
             {success && (
-              <div className="text-success text-sm text-center font-semibold dark:text-green-400">
+              <div className="text-green-600 dark:text-green-400 text-sm font-semibold bg-green-50 dark:bg-green-900/20 px-4 py-3 rounded-xl border border-green-200 dark:border-green-800 flex items-center gap-2">
+                <FiCheck className="w-4 h-4" />
                 Registration successful! Redirecting to login...
               </div>
             )}
-            <Button type="submit" variant="primary" disabled={loading} className="mt-2 w-full py-3 text-lg font-bold shadow-lg bg-blue-600 dark:bg-orange-400 hover:bg-blue-700 dark:hover:bg-orange-500 transition-all duration-200">
-              {loading ? 'Registering...' : 'Register'}
+            
+            <Button 
+              type="submit" 
+              variant="primary" 
+              size="lg"
+              disabled={loading} 
+              className="w-full py-3 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-200 group"
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+              <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-blue-900 dark:text-blue-100">
-            Already have an account? <a href="/login" className="text-blue-600 dark:text-blue-300 hover:underline font-semibold">Sign In</a>
+
+          <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+            Already have an account?{' '}
+            <button 
+              onClick={() => navigate('/login')}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors duration-200"
+            >
+              Sign in here
+            </button>
           </div>
         </Card>
       </div>

@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const navigate = useNavigate();
 
   // Convert Firebase user to our User type
@@ -67,10 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setPersistence(auth, browserLocalPersistence).then(() => {
       unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-        if (fbUser) {
-          setUser(mapUser(fbUser));
-        } else {
-          setUser(null);
+        if (!loggingOut) {
+          if (fbUser) {
+            setUser(mapUser(fbUser));
+          } else {
+            setUser(null);
+          }
         }
         setLoading(false);
       });
@@ -78,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [loggingOut]);
 
   function getFriendlyAuthError(error: any, context: 'login' | 'register'): string {
     switch (error.code) {
@@ -153,9 +156,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    setLoggingOut(true);
+    // Navigate to Welcome page and clear user state
+    navigate('/');
     signOut(auth);
     setUser(null);
-    navigate('/login');
+    // Reset the loggingOut flag after a delay
+    setTimeout(() => setLoggingOut(false), 1000);
   };
 
   // Add a method to refresh the user from Firebase

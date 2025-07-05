@@ -4,10 +4,12 @@ interface DropdownProps {
   label: React.ReactNode;
   children: React.ReactNode;
   compact?: boolean;
+  align?: 'left' | 'right' | 'center';
+  width?: string;
 }
 
-// Dropdown component with accessible menu and blue/orange color scheme
-const Dropdown: React.FC<DropdownProps> = ({ label, children, compact = false }) => {
+// Premium Dropdown component with accessible menu and modern styling
+const Dropdown: React.FC<DropdownProps> = ({ label, children, compact = false, align = 'right', width = 'w-56' }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -46,13 +48,16 @@ const Dropdown: React.FC<DropdownProps> = ({ label, children, compact = false })
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
+  // Alignment classes
+  const alignClass = align === 'left' ? 'left-0' : align === 'center' ? 'left-1/2 -translate-x-1/2' : 'right-0';
+
   return (
     <div className="relative inline-block text-left" ref={ref}>
       <button
         type="button"
-        className={`rounded-xl font-semibold border-2 border-blue-600 dark:border-orange-400 bg-blue-600 text-white hover:bg-orange-400 dark:bg-orange-400 dark:text-white dark:hover:bg-blue-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-400 dark:focus-visible:ring-blue-400 transition-all duration-200 shadow-lg ${compact ? 'text-[11px] px-2 py-1' : 'px-3 py-2'}`}
+        className={`rounded-xl font-semibold border-2 border-blue-600 dark:border-blue-400 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 dark:bg-blue-700 dark:text-white dark:hover:bg-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 shadow-lg ${compact ? 'text-xs px-2 py-1' : 'text-base px-4 py-2'}`}
         onClick={() => setOpen((v) => !v)}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
         {label}
@@ -61,27 +66,28 @@ const Dropdown: React.FC<DropdownProps> = ({ label, children, compact = false })
       </button>
       <div
         ref={contentRef}
-        className={`absolute right-0 mt-2 w-48 bg-blue-50 dark:bg-orange-900 border border-blue-200 dark:border-orange-400 rounded shadow-lg z-50 transition-all duration-200 origin-top-right transform ${open ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-95 opacity-0 pointer-events-none'}`}
+        className={`absolute mt-3 z-50 ${alignClass} ${width} bg-white/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl transition-all duration-200 origin-top ${open ? 'scale-100 opacity-100 pointer-events-auto animate-fadeIn' : 'scale-95 opacity-0 pointer-events-none'}`}
         tabIndex={-1}
-        role="dialog"
+        role="menu"
         aria-modal="true"
         style={{ minWidth: 180 }}
       >
         {/* Arrow */}
-        <span className="absolute -top-2 right-4 w-4 h-4 bg-blue-50 dark:bg-orange-900 border-l border-t border-blue-200 dark:border-orange-400 rotate-45 z-0" />
-        <div className="py-1 relative z-10">{children}</div>
+        <span className="absolute -top-2 right-8 w-4 h-4 bg-white/80 dark:bg-slate-900/90 border-l border-t border-slate-200 dark:border-slate-700 rotate-45 z-0 shadow-md" />
+        <div className="py-2 relative z-10">{children}</div>
       </div>
     </div>
   );
 };
 
-// Dropdown.Item for menu items
+// Premium Dropdown.Item for menu items
 interface DropdownItemProps extends React.ComponentProps<'button'> {
   compact?: boolean;
 }
 export const DropdownItem: React.FC<DropdownItemProps> = ({ children, className = '', compact = false, ...props }) => (
   <button
-    className={`w-full text-left font-semibold rounded-lg border-2 border-transparent bg-white dark:bg-blue-950 text-blue-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-blue-700 hover:text-blue-900 dark:hover:text-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 dark:focus-visible:ring-blue-400 transition-all duration-200 ${compact ? 'text-[11px] px-2 py-1' : 'text-base px-4 py-3'} ${className}`}
+    className={`w-full text-left font-semibold rounded-xl border-2 border-transparent bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-800 hover:text-blue-700 dark:hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all duration-200 ${compact ? 'text-xs px-2 py-1' : 'text-base px-4 py-3'} ${className}`}
+    role="menuitem"
     {...props}
   >
     {children}

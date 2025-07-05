@@ -28,7 +28,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   if (loading) return null;
   if (!user) {
-    return <Navigate to="/login" state={{ from: location, message: 'Please log in or sign up to continue.' }} replace />;
+    return <Navigate to="/" state={{ from: location, message: 'Please log in or sign up to continue.' }} replace />;
   }
   return <>{children}</>;
 };

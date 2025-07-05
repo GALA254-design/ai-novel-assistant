@@ -135,7 +135,7 @@ const NewStory: React.FC = () => {
 
   // Cancel handler
   const handleCancel = () => {
-    navigate('/dashboard');
+      navigate('/dashboard');
   };
 
   // Example usage in a handler:
@@ -174,7 +174,7 @@ const NewStory: React.FC = () => {
               placeholder="Title (required)"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              required
+                    required
             />
             <label className="font-medium text-blue-700 dark:text-orange-300">Prompt</label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -188,7 +188,7 @@ const NewStory: React.FC = () => {
                   {ex}
                 </button>
               ))}
-            </div>
+                  </div>
             <input
               type="text"
               className="px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-300"
@@ -200,24 +200,24 @@ const NewStory: React.FC = () => {
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Genre</label>
-                <select
+                    <select
                   className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
                   value={genre}
                   onChange={e => setGenre(e.target.value)}
                 >
                   {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
+                    </select>
+                  </div>
               <div className="flex-1">
                 <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Tone</label>
-                <select
+                  <select
                   className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
                   value={tone}
                   onChange={e => setTone(e.target.value)}
                 >
                   {tones.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
+                  </select>
+                </div>
               <div className="flex-1">
                 <label className="block font-medium text-blue-700 dark:text-orange-300 mb-1">Chapters</label>
                 <input
@@ -227,18 +227,18 @@ const NewStory: React.FC = () => {
                   className="w-full px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-950 text-gray-900 dark:text-gray-100 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400"
                   value={chapters}
                   onChange={e => setChapters(Number(e.target.value))}
-                />
-              </div>
+                  />
+                </div>
             </div>
             <button
-              type="submit"
+                    type="submit"
               className="mt-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white shadow-xl text-lg font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={loading}
+                    disabled={loading}
             >
               {loading ? 'Generating…' : 'Generate'}
             </button>
             {error && <div className="text-red-600 bg-red-50 dark:bg-red-900/40 rounded-lg px-4 py-2 font-medium text-center">{error}</div>}
-          </form>
+              </form>
           {/* Result Modal */}
           <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} title="Generated Story">
             <div className="flex flex-col gap-2 h-full max-h-[80vh] w-full max-w-2xl mx-auto">
@@ -252,7 +252,7 @@ const NewStory: React.FC = () => {
               <div className="whitespace-pre-line bg-blue-50 dark:bg-blue-950/60 rounded-lg px-4 py-4 text-lg text-blue-900 dark:text-blue-100 shadow-inner max-h-[60vh] overflow-y-auto border border-blue-200 dark:border-blue-800 flex-1">
                 {story}
               </div>
-            </div>
+          </div>
           </Modal>
         </div>
       </div>

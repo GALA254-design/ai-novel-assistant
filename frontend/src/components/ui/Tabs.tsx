@@ -8,21 +8,28 @@ interface Tab {
 interface TabsProps {
   tabs: Tab[];
   initialIndex?: number;
+  fullWidth?: boolean;
 }
 
-// Tabs component for switching between content sections
-const Tabs: React.FC<TabsProps> = ({ tabs, initialIndex = 0 }) => {
+// Premium Tabs component for switching between content sections
+const Tabs: React.FC<TabsProps> = ({ tabs, initialIndex = 0, fullWidth = false }) => {
   const [active, setActive] = useState(initialIndex);
   return (
     <div>
-      <div className="relative flex gap-2 mb-4" role="tablist">
+      <div
+        className={`relative flex gap-2 mb-6 ${fullWidth ? 'w-full' : ''}`}
+        role="tablist"
+      >
         {tabs.map((tab, idx) => (
           <button
             key={tab.label}
-            className={`text-xs px-3 py-1 font-semibold rounded-xl border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary
+            className={`
+              text-base px-5 py-2 font-semibold rounded-2xl border-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+              shadow-sm
               ${active === idx
-                ? 'bg-blue-600 dark:bg-orange-400 text-white border-blue-600 dark:border-orange-400 z-10'
-                : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-orange-200 border-transparent hover:bg-blue-200 dark:hover:bg-blue-800'}
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-600 shadow-lg scale-105 z-10'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-transparent hover:bg-blue-50 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300'}
+              ${fullWidth ? 'flex-1' : ''}
             `}
             onClick={() => setActive(idx)}
             aria-selected={active === idx}
@@ -35,7 +42,14 @@ const Tabs: React.FC<TabsProps> = ({ tabs, initialIndex = 0 }) => {
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`tabpanel-${active}`} aria-labelledby={`tab-${active}`}>{tabs[active].content}</div>
+      <div
+        className="rounded-2xl bg-white dark:bg-slate-900/60 shadow-inner p-6 transition-all duration-200"
+        role="tabpanel"
+        id={`tabpanel-${active}`}
+        aria-labelledby={`tab-${active}`}
+      >
+        {tabs[active].content}
+      </div>
     </div>
   );
 };
