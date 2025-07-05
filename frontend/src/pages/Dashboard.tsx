@@ -314,37 +314,37 @@ const Dashboard: React.FC = () => {
             <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
             
             {/* Premium Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8 mb-8">
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-50/80 to-indigo-100/80 dark:from-blue-900/40 dark:to-indigo-900/40 border-0" variant="elevated" hover>
-                <div className="flex items-center gap-4 p-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBookOpen className="w-7 h-7 text-white" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-8 mb-6 sm:mb-8">
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-50/80 to-indigo-100/80 dark:from-blue-900/40 dark:to-indigo-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
+                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiBookOpen className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                   </div>
                   <div>
-                    <div className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{totalStories}</div>
-                    <div className="text-slate-600 dark:text-slate-400 text-base font-medium">Total Stories</div>
+                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{totalStories}</div>
+                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">Total Stories</div>
                   </div>
                 </div>
               </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-green-50/80 to-emerald-100/80 dark:from-green-900/40 dark:to-emerald-900/40 border-0" variant="elevated" hover>
-                <div className="flex items-center gap-4 p-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBarChart2 className="w-7 h-7 text-white" />
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-green-50/80 to-emerald-100/80 dark:from-green-900/40 dark:to-emerald-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
+                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiBarChart2 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                   </div>
                   <div>
-                    <div className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{completedStories}</div>
-                    <div className="text-slate-600 dark:text-slate-400 text-base font-medium">Completed</div>
+                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{completedStories}</div>
+                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">Completed</div>
                   </div>
                 </div>
               </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-purple-50/80 to-pink-100/80 dark:from-purple-900/40 dark:to-pink-900/40 border-0" variant="elevated" hover>
-                <div className="flex items-center gap-4 p-6">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiZap className="w-7 h-7 text-white" />
+              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-purple-50/80 to-pink-100/80 dark:from-purple-900/40 dark:to-pink-900/40 border-0 max-w-xs w-full mx-auto" variant="elevated" hover>
+                <div className="flex items-center gap-2 sm:gap-4 p-3 sm:p-6">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <FiZap className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                   </div>
                   <div>
-                    <div className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{aiGeneratedStories}</div>
-                    <div className="text-slate-600 dark:text-slate-400 text-base font-medium">AI Generated</div>
+                    <div className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{aiGeneratedStories}</div>
+                    <div className="text-xs sm:text-base text-slate-600 dark:text-slate-400 font-medium">AI Generated</div>
                   </div>
                 </div>
               </Card>

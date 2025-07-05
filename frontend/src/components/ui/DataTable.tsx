@@ -101,7 +101,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               <div className="grid grid-cols-2 gap-4 text-base">
                 <div>
                   <span className="font-semibold text-slate-600 dark:text-slate-400">Author:</span>
-                  <span className="ml-2 text-slate-900 dark:text-slate-100">{row.author}</span>
+                  <span className="ml-2 text-slate-900 dark:text-slate-100 break-words whitespace-normal">{row.author}</span>
                 </div>
                 <div>
                   <span className="font-semibold text-slate-600 dark:text-slate-400">Status:</span>
@@ -115,7 +115,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </div>
                 <div className="col-span-2">
                   <span className="font-semibold text-slate-600 dark:text-slate-400">Updated:</span>
-                  <span className="ml-2 text-slate-900 dark:text-slate-100">{row.updated}</span>
+                  <span className="ml-2 text-slate-900 dark:text-slate-100 break-words whitespace-normal">{row.updated}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
@@ -163,9 +163,9 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <div className="flex-1 flex flex-col min-w-0">
                   <div className="font-extrabold text-base text-slate-900 dark:text-slate-100 truncate">{row.title}</div>
                   <div className="flex gap-3 text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
-                    <span>{row.genre}</span>
+                    <span className="break-words whitespace-normal">{row.genre}</span>
                     <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold">{row.tone}</span>
-                    <span>{row.updatedAt}</span>
+                    <span className="break-words whitespace-normal">{row.updatedAt}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
