@@ -7,13 +7,13 @@ import { FiSettings, FiInfo, FiArrowLeft, FiSave, FiRotateCcw, FiLogOut, FiUser,
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { updateUserProfile, fetchUserById } from '../services/api';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 const tabLabels = [
   { label: 'Profile', key: 'profile', icon: <FiUser className="w-4 h-4" /> },
-  { label: 'Story Generation', key: 'generation', icon: <FiZap className="w-4 h-4" /> },
+  { label: 'Security', key: 'security', icon: <FiShield className="w-4 h-4" /> },
 ];
 
 const Settings: React.FC = () => {
@@ -48,6 +48,10 @@ const Settings: React.FC = () => {
     publicProfile: false,
   });
   const [loading, setLoading] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -79,14 +83,14 @@ const Settings: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      await setDoc(doc(db, 'userPreferences', user.uid), {
-        defaultGenre: settings.defaultGenre,
-        defaultTone: settings.defaultTone,
-        defaultLength: settings.defaultLength,
-        autoSave: settings.autoSave,
-        saveInterval: settings.saveInterval,
-      }, { merge: true });
-      showToast('Settings saved successfully', 'success');
+    await setDoc(doc(db, 'userPreferences', user.uid), {
+      defaultGenre: settings.defaultGenre,
+      defaultTone: settings.defaultTone,
+      defaultLength: settings.defaultLength,
+      autoSave: settings.autoSave,
+      saveInterval: settings.saveInterval,
+    }, { merge: true });
+    showToast('Settings saved successfully', 'success');
     } catch (error) {
       showToast('Failed to save settings. Please try again.', 'error');
     } finally {
@@ -153,15 +157,16 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Tab content in cards */}
-            <Card className="p-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 rounded-3xl shadow-2xl w-full mb-8 animate-fadeIn">
+            <Card className="p-4 sm:p-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 rounded-3xl shadow-2xl w-full max-w-full mb-8 animate-fadeIn">
               {activeTab === 'profile' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <Input
                       label="Display Name"
                       value={settings.displayName}
                       onChange={e => handleProfileChange('displayName', e.target.value)}
                       leftIcon={<FiUser className="w-4 h-4" />}
+                      className="w-full"
                     />
                     <Input
                       label="Email"
@@ -169,53 +174,54 @@ const Settings: React.FC = () => {
                       value={settings.email}
                       onChange={e => handleProfileChange('email', e.target.value)}
                       leftIcon={<FiMail className="w-4 h-4" />}
+                      className="w-full"
                     />
-                    <div>
+                    <div className="w-full">
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Timezone</label>
                       <div className="relative">
                         <FiGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <select
-                          value={settings.timezone}
-                          onChange={(e) => handleSettingChange('timezone', e.target.value)}
+                      <select
+                        value={settings.timezone}
+                        onChange={(e) => handleSettingChange('timezone', e.target.value)}
                           className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                        >
-                          <option value="UTC-8">Pacific Time (UTC-8)</option>
-                          <option value="UTC-5">Eastern Time (UTC-5)</option>
-                          <option value="UTC+0">UTC</option>
-                          <option value="UTC+1">Central European Time (UTC+1)</option>
-                          <option value="UTC+8">China Standard Time (UTC+8)</option>
-                        </select>
-                      </div>
+                      >
+                        <option value="UTC-8">Pacific Time (UTC-8)</option>
+                        <option value="UTC-5">Eastern Time (UTC-5)</option>
+                        <option value="UTC+0">UTC</option>
+                        <option value="UTC+1">Central European Time (UTC+1)</option>
+                        <option value="UTC+8">China Standard Time (UTC+8)</option>
+                      </select>
                     </div>
-                    <div>
+                    </div>
+                    <div className="w-full">
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Language</label>
                       <div className="relative">
                         <FiGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <select
-                          value={settings.language}
-                          onChange={(e) => handleSettingChange('language', e.target.value)}
+                      <select
+                        value={settings.language}
+                        onChange={(e) => handleSettingChange('language', e.target.value)}
                           className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                        >
-                          <option value="en">English</option>
-                          <option value="es">Spanish</option>
-                          <option value="fr">French</option>
-                          <option value="de">German</option>
-                          <option value="zh">Chinese</option>
-                        </select>
-                      </div>
+                      >
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="zh">Chinese</option>
+                      </select>
                     </div>
+                  </div>
                   </div>
                   
                   {/* Theme Toggle */}
-                  <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center justify-between">
+                  <div className="mt-4 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 w-full">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         {theme === 'dark' ? <FiMoon className="w-5 h-5 text-blue-600" /> : <FiSun className="w-5 h-5 text-orange-500" />}
-                        <div>
+                    <div>
                           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Appearance</span>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</p>
-                        </div>
-                      </div>
+                    </div>
+                  </div>
                       <button
                         onClick={toggleTheme}
                         className="relative w-16 h-8 flex items-center rounded-full border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-lg"
@@ -232,85 +238,68 @@ const Settings: React.FC = () => {
                 </div>
               )}
               
-              {activeTab === 'generation' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Default Genre</label>
-                      <select
-                        value={settings.defaultGenre}
-                        onChange={(e) => handleSettingChange('defaultGenre', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                      >
-                        <option value="Fantasy">Fantasy</option>
-                        <option value="Sci-Fi">Science Fiction</option>
-                        <option value="Mystery">Mystery</option>
-                        <option value="Romance">Romance</option>
-                        <option value="Horror">Horror</option>
-                        <option value="Adventure">Adventure</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Default Tone</label>
-                      <select
-                        value={settings.defaultTone}
-                        onChange={(e) => handleSettingChange('defaultTone', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                      >
-                        <option value="Serious">Serious</option>
-                        <option value="Humorous">Humorous</option>
-                        <option value="Dramatic">Dramatic</option>
-                        <option value="Inspiring">Inspiring</option>
-                        <option value="Dark">Dark</option>
-                        <option value="Lighthearted">Lighthearted</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Default Length</label>
-                      <select
-                        value={settings.defaultLength}
-                        onChange={(e) => handleSettingChange('defaultLength', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                      >
-                        <option value="Short">Short</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Long">Long</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Auto-save Interval (seconds)</label>
-                      <div className="relative">
-                        <FiClock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          type="number"
-                          min="10"
-                          max="300"
-                          value={settings.saveInterval}
-                          onChange={(e) => handleSettingChange('saveInterval', parseInt(e.target.value))}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 transition-all duration-200"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Auto-save Toggle */}
-                  <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <FiZap className="w-5 h-5 text-green-600" />
-                        <div>
-                          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Enable auto-save</span>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Automatically save your work every {settings.saveInterval} seconds</p>
-                        </div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={settings.autoSave}
-                        onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
-                        className="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                      />
-                    </label>
-                  </div>
+              {activeTab === 'security' && (
+                <div className="space-y-8 max-w-full sm:max-w-lg mx-auto">
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><FiShield /> Change Password</h2>
+                  <form
+                    className="space-y-6"
+                    onSubmit={async e => {
+                      e.preventDefault();
+                      setPasswordError(null);
+                      setPasswordSuccess(false);
+                      setPasswordLoading(true);
+                      try {
+                        if (!user?.email) throw new Error('No user email');
+                        if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) throw new Error('All fields required');
+                        if (passwordForm.new !== passwordForm.confirm) throw new Error('New passwords do not match');
+                        const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth');
+                        if (!auth.currentUser) throw new Error('No authenticated user');
+                        const credential = EmailAuthProvider.credential(user.email, passwordForm.current);
+                        await reauthenticateWithCredential(auth.currentUser, credential);
+                        await updatePassword(auth.currentUser, passwordForm.new);
+                        setPasswordSuccess(true);
+                        setPasswordForm({ current: '', new: '', confirm: '' });
+                        showToast('Password updated successfully', 'success');
+                      } catch (err: any) {
+                        let msg = err.message || 'Failed to update password';
+                        if (err.code === 'auth/wrong-password') msg = 'Current password is incorrect.';
+                        if (err.code === 'auth/weak-password') msg = 'New password is too weak.';
+                        setPasswordError(msg);
+                      } finally {
+                        setPasswordLoading(false);
+                      }
+                    }}
+                  >
+                    <Input
+                      label="Current Password"
+                      type="password"
+                      value={passwordForm.current}
+                      onChange={e => setPasswordForm(f => ({ ...f, current: e.target.value }))}
+                      required
+                      className="w-full"
+                    />
+                    <Input
+                      label="New Password"
+                      type="password"
+                      value={passwordForm.new}
+                      onChange={e => setPasswordForm(f => ({ ...f, new: e.target.value }))}
+                      required
+                      className="w-full"
+                    />
+                    <Input
+                      label="Confirm New Password"
+                      type="password"
+                      value={passwordForm.confirm}
+                      onChange={e => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
+                      required
+                      className="w-full"
+                    />
+                    {passwordError && <div className="text-red-600 dark:text-red-400 text-sm font-semibold bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl border border-red-200 dark:border-red-800 w-full">{passwordError}</div>}
+                    {passwordSuccess && <div className="text-green-600 dark:text-green-400 text-sm font-semibold bg-green-50 dark:bg-green-900/20 px-4 py-3 rounded-xl border border-green-200 dark:border-green-800 w-full">Password updated successfully!</div>}
+                    <Button type="submit" variant="primary" className="w-full py-3 font-bold" disabled={passwordLoading}>
+                      {passwordLoading ? 'Updating...' : 'Update Password'}
+                    </Button>
+                  </form>
                 </div>
               )}
             </Card>
@@ -337,8 +326,8 @@ const Settings: React.FC = () => {
           <div className="w-full lg:w-1/4 flex-shrink-0 flex flex-col gap-6 sticky top-20 self-start min-w-0">
             <Card className="p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl animate-fadeIn">
               <div className="flex items-center gap-3 mb-4">
-                <FiInfo className="w-6 h-6 text-blue-600 dark:text-orange-400" />
-                <div>
+              <FiInfo className="w-6 h-6 text-blue-600 dark:text-orange-400" />
+              <div>
                   <div className="font-semibold text-blue-700 dark:text-orange-300">Tip</div>
                 </div>
               </div>

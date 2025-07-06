@@ -10,7 +10,6 @@ import StoryEditor from './pages/StoryEditor';
 import Feedback from './pages/Feedback';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
-import AgentManager from './pages/AgentManager';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import Help from './pages/Help';
 import Recover from './pages/Recover';
@@ -54,7 +53,6 @@ const App: React.FC = () => {
             <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-            <Route path="/agents" element={<PrivateRoute><AgentManager /></PrivateRoute>} />
             <Route path="/analytics" element={<PrivateRoute><AnalyticsDashboard /></PrivateRoute>} />
             <Route path="/story/:projectId" element={<PrivateRoute><StoryView /></PrivateRoute>} />
             <Route path="/story-editor/:projectId" element={<PrivateRoute><StoryViewEditor /></PrivateRoute>} />

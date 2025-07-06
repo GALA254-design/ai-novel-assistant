@@ -591,8 +591,8 @@ const StoryEditor: React.FC = () => {
                 </div>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tone</label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                     name="tone"
                     value={storyForm.tone}
                     onChange={handleStoryChange}
@@ -748,20 +748,20 @@ const StoryEditor: React.FC = () => {
                         className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base font-semibold"
                         required
                       />
-                      <textarea
-                        name="content"
+                    <textarea
+                      name="content"
                         value={currentChapter.content}
                         onChange={handleChapterChange}
                         placeholder="Write your chapter content here..."
                         className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 resize-none text-sm sm:text-base min-h-[300px]"
-                        required
-                      />
+                      required
+                    />
                     </div>
                   </Card>
                 )}
-              </div>
-            )}
-          </div>
+                      </div>
+                    )}
+                  </div>
 
           {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
           <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
@@ -809,8 +809,8 @@ const StoryEditor: React.FC = () => {
                 <div className="flex justify-between">
                   <span>Current:</span>
                   <span className="font-semibold">{currentChapterIndex + 1}</span>
-                </div>
-              </div>
+                  </div>
+                  </div>
             </Card>
 
             {/* Chapter List */}
@@ -818,7 +818,7 @@ const StoryEditor: React.FC = () => {
               <h4 className="font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter List</h4>
               <div className="space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
                 {chapters.map((chapter, index) => (
-                  <button
+                    <button
                     key={index}
                     onClick={() => setCurrentChapterIndex(index)}
                     className={`w-full text-left px-2 sm:px-3 py-2 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 text-xs sm:text-sm ${
@@ -831,7 +831,7 @@ const StoryEditor: React.FC = () => {
                     <div className="text-xs opacity-75">
                       {chapter.content ? `${chapter.content.length} chars` : 'Empty'}
                     </div>
-                  </button>
+                    </button>
                 ))}
               </div>
             </Card>

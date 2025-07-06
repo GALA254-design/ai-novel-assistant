@@ -94,17 +94,17 @@ const Welcome: React.FC = () => {
 
         {/* CTA Section */}
         <div className="flex flex-col items-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-lg mx-auto mb-6 sm:mb-10 animate-fadeIn delay-300">
-          <Button
-            variant="primary"
+        <Button
+          variant="primary"
             size="xl"
             className="w-full py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800"
-            onClick={() => navigate('/register')}
-          >
-            Get Started & Sign Up
+          onClick={() => navigate('/register')}
+        >
+          Get Started & Sign Up
             <FiArrowRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-2 transition-transform duration-200" />
-          </Button>
+        </Button>
           <div className="text-center text-gray-600 dark:text-gray-300 text-sm sm:text-base">
-            Already have an account?{' '}
+          Already have an account?{' '}
             <button 
               className="text-blue-600 dark:text-blue-400 font-semibold hover:text-blue-700 dark:hover:text-blue-300 underline transition-colors duration-200" 
               onClick={() => navigate('/login')}

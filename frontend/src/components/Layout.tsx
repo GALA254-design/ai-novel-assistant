@@ -15,7 +15,6 @@ const Layout: React.FC = () => {
     ...(user ? [
       { name: 'Profile', icon: FiUser, to: '/profile' },
       { name: 'Settings', icon: FiSettings, to: '/settings' },
-      { name: 'Agents', icon: FiZap, to: '/agents' },
       { name: 'Analytics', icon: FiBarChart2, to: '/analytics' },
       { name: 'Help', icon: FiInfo, to: '/help' },
     ] : []),
@@ -228,7 +227,7 @@ const Layout: React.FC = () => {
         </main>
       </div>
       
-      {/* Premium Bottom Navigation Bar for Mobile (reduced) */}
+      {/* Premium Bottom Navigation Bar for Mobile (now with 4 icons) */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/50 dark:border-slate-700/50 flex justify-around items-center h-20 shadow-2xl backdrop-blur-xl px-4 gap-2">
         <NavLink 
           to="/dashboard" 
@@ -251,6 +250,17 @@ const Layout: React.FC = () => {
         >
           <FiEdit size={28} />
           <span className="text-sm font-semibold mt-1">Editor</span>
+        </NavLink>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all duration-200 ${
+            isActive 
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <FiSettings size={28} />
+          <span className="text-sm font-semibold mt-1">Settings</span>
         </NavLink>
         <NavLink
           to="/profile"
@@ -278,6 +288,16 @@ const Layout: React.FC = () => {
           )}
         </NavLink>
       </nav>
+
+      {/* Floating Action Button (FAB) for New Story - Mobile Only */}
+      <button
+        onClick={() => window.location.href = '/new-story'}
+        className="fixed z-50 bottom-14 left-1/2 -translate-x-1/2 md:hidden bg-white/95 dark:bg-slate-900/95 text-blue-600 dark:text-blue-400 rounded-full w-16 h-16 flex items-center justify-center border-4 border-blue-100 dark:border-slate-800 shadow-2xl transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300 dark:focus-visible:ring-blue-800"
+        aria-label="New Story"
+        style={{ boxShadow: '0 8px 24px 0 rgba(31, 41, 55, 0.18)' }}
+      >
+        <FiPlus className="w-10 h-10 font-bold" />
+      </button>
       
       {/* Premium Footer */}
       <footer className="w-screen py-6 px-8 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/50 dark:border-slate-700/50 text-center text-sm text-slate-600 dark:text-slate-400 transition-all duration-300 backdrop-blur-xl">

@@ -167,7 +167,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-bold">{row.tone}</span>
                     <span className="break-words whitespace-normal">{row.updatedAt}</span>
                   </div>
-                </div>
+          </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow transition-all duration-200 text-sm flex items-center gap-2"
@@ -194,7 +194,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               </div>
             ))
           )}
-        </div>
+      </div>
       )}
     </div>
   );

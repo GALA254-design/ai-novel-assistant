@@ -402,16 +402,11 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 w-full max-w-full overflow-x-hidden">
       <div className="w-full max-w-full mx-auto p-3 sm:p-6 lg:p-8">
-        {/* Mobile-Optimized Header */}
-        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-4 sm:py-6 shadow-xl rounded-2xl mb-4 sm:mb-8 w-full max-w-full">
-          <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-600 via-indigo-500 to-indigo-700 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-center">
-              <FiBookOpen className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white drop-shadow-lg" />
-            </div>
-            <div className="flex-1 sm:flex-none">
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Dashboard</h2>
-              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm lg:text-base font-medium">Manage your creative stories</p>
-            </div>
+        {/* Dashboard Header with New Story Button (desktop only) */}
+        <div className="hidden sm:flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 w-full">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">Dashboard</h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base font-medium">Manage your creative stories</p>
           </div>
           <Button 
             variant="primary" 
@@ -424,148 +419,208 @@ const Dashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* Mobile-First Layout */}
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full max-w-full">
-          {/* Main Content - Full width on mobile */}
-          <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
-            {/* Upload Story Card */}
-            <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
-            
-            {/* Mobile-Optimized Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-blue-50/80 to-indigo-100/80 dark:from-blue-900/40 dark:to-indigo-900/40 border-0 w-full" variant="elevated" hover>
-                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{totalStories}</div>
-                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">Total Stories</div>
-                  </div>
-                </div>
-              </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-green-50/80 to-emerald-100/80 dark:from-green-900/40 dark:to-emerald-900/40 border-0 w-full" variant="elevated" hover>
-                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiBarChart2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{completedStories}</div>
-                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">Completed</div>
-                  </div>
-                </div>
-              </Card>
-              <Card className="group hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-purple-50/80 to-pink-100/80 dark:from-purple-900/40 dark:to-pink-900/40 border-0 w-full sm:col-span-2 lg:col-span-1" variant="elevated" hover>
-                <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl sm:rounded-2xl shadow-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <FiZap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-7 lg:h-7 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{aiGeneratedStories}</div>
-                    <div className="text-xs sm:text-sm lg:text-base text-slate-600 dark:text-slate-400 font-medium">AI Generated</div>
-                  </div>
-                </div>
-              </Card>
-            </div>
+        {/* Mobile Floating New Story Button (bottom bar) */}
+        <div className="fixed bottom-0 left-0 w-full z-50 flex justify-center sm:hidden pointer-events-none">
+          <div className="w-full max-w-md px-4 pb-4 flex justify-center pointer-events-auto">
+            <Button
+              variant="primary"
+              size="lg"
+              icon={<FiPlus />}
+              onClick={() => navigate('/new-story')}
+              className="w-full py-4 text-lg font-bold rounded-2xl shadow-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all duration-200"
+              style={{ boxShadow: '0 8px 32px 0 rgba(31, 41, 55, 0.25)' }}
+            >
+              New Story
+            </Button>
+          </div>
+        </div>
 
-            {/* Mobile-Optimized Stories Table */}
-            <div className="mb-6 sm:mb-8">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div className="relative w-full sm:w-80 lg:w-96">
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 sm:w-5 sm:h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search stories..."
-                    className="w-full pl-9 sm:pl-10 pr-4 py-3 sm:py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm sm:text-base"
-                    aria-label="Search stories"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
+        {/* Dashboard Search Bar - Top, Prominent */}
+        <div className="flex justify-center w-full mb-8">
+          <div className="relative w-full max-w-2xl">
+            <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                        <input
+                          type="text"
+              placeholder="Search your stories by title, genre, or tone..."
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
+                          aria-label="Search stories"
+                          value={search}
+                          onChange={e => setSearch(e.target.value)}
+                        />
+                      </div>
+        </div>
+
+        {search.trim() ? (
+          // When searching, show table directly below search bar, de-emphasize analytics/upload
+          <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
+            <div className="overflow-x-auto rounded-2xl shadow-xl bg-white/90 dark:bg-slate-900/90 p-4 sm:p-6">
+                          <DataTable
+                            columns={columns}
+                data={getFilteredStories('all').map((story) => ({
+                            ...story,
+                  updatedAt: <span className="text-blue-600 dark:text-blue-400 font-mono text-xs sm:text-sm">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
+                  actions: null,
+                  onView: () => navigate(`/story-editor/${story.id}`),
+                  onPreview: () => setPreview(story),
+                  onDelete: () => { setSelected(story); setShowDelete(true); },
+                            }))}
+                            onBatchDelete={handleBatchDelete}
+                          />
+            </div>
+            {/* Optionally, show analytics/upload below in a collapsed or faded style */}
+            <div className="opacity-60 pointer-events-none select-none">
+              <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 mt-8">
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiBookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{totalStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Total Stories</div>
+                  </div>
+                </Card>
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-green-50/90 via-emerald-100/80 to-teal-100/90 dark:from-green-900/50 dark:via-emerald-800/40 dark:to-teal-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiBarChart2 className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{completedStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Completed</div>
+                        </div>
+                      </Card>
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-purple-50/90 via-pink-100/80 to-rose-100/90 dark:from-purple-900/50 dark:via-pink-800/40 dark:to-rose-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center sm:col-span-2 lg:col-span-1 transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 via-pink-600 to-rose-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiZap className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{aiGeneratedStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">AI Generated</div>
+                  </div>
+            </Card>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Normal dashboard layout
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full max-w-full">
+            {/* Main Content - Full width on mobile */}
+            <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
+              <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 mb-8 sm:mb-10">
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiBookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{totalStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Total Stories</div>
+                  </div>
+                </Card>
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-green-50/90 via-emerald-100/80 to-teal-100/90 dark:from-green-900/50 dark:via-emerald-800/40 dark:to-teal-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiBarChart2 className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{completedStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Completed</div>
+                  </div>
+                </Card>
+                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-purple-50/90 via-pink-100/80 to-rose-100/90 dark:from-purple-900/50 dark:via-pink-800/40 dark:to-rose-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center sm:col-span-2 lg:col-span-1 transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 via-pink-600 to-rose-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                      <FiZap className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    </div>
+                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{aiGeneratedStories}</div>
+                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">AI Generated</div>
+                  </div>
+                </Card>
+              </div>
+              <div className="mb-6 sm:mb-8">
+                <div className="overflow-x-auto">
+                  <DataTable
+                    columns={columns}
+                    data={getFilteredStories('all').map((story) => ({
+                      ...story,
+                      updatedAt: <span className="text-blue-600 dark:text-blue-400 font-mono text-xs sm:text-sm">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
+                      actions: null,
+                      onView: () => navigate(`/story-editor/${story.id}`),
+                      onPreview: () => setPreview(story),
+                      onDelete: () => { setSelected(story); setShowDelete(true); },
+                    }))}
+                    onBatchDelete={handleBatchDelete}
                   />
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <DataTable
-                  columns={columns}
-                  data={getFilteredStories('all').map((story) => ({
-                    ...story,
-                    updatedAt: <span className="text-blue-600 dark:text-blue-400 font-mono text-xs sm:text-sm">{story.updatedAt?.toDate ? story.updatedAt.toDate().toLocaleString() : ''}</span>,
-                    actions: null,
-                    onView: () => navigate(`/story-editor/${story.id}`),
-                    onPreview: () => setPreview(story),
-                    onDelete: () => { setSelected(story); setShowDelete(true); },
-                  }))}
-                  onBatchDelete={handleBatchDelete}
-                />
-              </div>
             </div>
-          </div>
 
-          {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
-          <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
-            <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
-              <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
-                <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
-                  <FiZap className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
-                </span>
-                Quick Actions
-              </h4>
-              <div className="space-y-2 sm:space-y-3">
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  icon={<FiDownload />}
-                  onClick={handleExportAll}
-                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
-                >
-                  Export All Stories
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  icon={<FiTrash2 />}
-                  onClick={handleDeleteSelected}
-                  className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
-                >
-                  Delete Selected
-                </Button>
-              </div>
+            {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
+            <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
+              <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
+                <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
+                  <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
+                    <FiZap className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+                  </span>
+                  Quick Actions
+                </h4>
+                <div className="space-y-2 sm:space-y-3">
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    icon={<FiDownload />}
+                    onClick={handleExportAll}
+                    className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
+                  >
+                    Export All Stories
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    icon={<FiTrash2 />}
+                    onClick={handleDeleteSelected}
+                    className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
+                  >
+                    Delete Selected
+                  </Button>
+                </div>
             </Card>
-            
-            <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
-              <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
-                <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
-                  <FiClock className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
-                </span>
-                Recent Activity
-              </h4>
-              <div className="space-y-2 sm:space-y-3">
+              
+              <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
+                <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
+                  <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
+                    <FiClock className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+                  </span>
+                  Recent Activity
+                </h4>
+                <div className="space-y-2 sm:space-y-3">
                 {recentActivity.length === 0 ? (
-                  <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center py-4">
-                    No recent activity.
-                  </div>
+                    <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center py-4">
+                      No recent activity.
+                    </div>
                 ) : (
                   recentActivity.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200">
-                      <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${
-                        item.type === 'upload' ? 'bg-blue-500' : 
-                        item.type === 'edit' ? 'bg-green-500' : 
-                        'bg-red-500'
-                      }`}></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium truncate">
-                          {item.text}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {item.time}
+                      <div key={i} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200">
+                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${
+                          item.type === 'upload' ? 'bg-blue-500' : 
+                          item.type === 'edit' ? 'bg-green-500' : 
+                          'bg-red-500'
+                        }`}></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium truncate">
+                            {item.text}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {item.time}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
+                    ))
+                  )}
+                </div>
             </Card>
           </div>
         </div>
+        )}
 
         {/* Premium Modals */}
         <Modal
@@ -624,7 +679,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900 dark:via-slate-900 dark:to-indigo-950 rounded-2xl p-6 max-h-96 overflow-y-auto border border-blue-100 dark:border-blue-800 shadow-inner">
               <div className="prose prose-slate dark:prose-invert max-w-none text-base leading-relaxed">
-                {preview?.content}
+              {preview?.content}
               </div>
             </div>
           </div>
@@ -649,7 +704,7 @@ const Dashboard: React.FC = () => {
           <div className="space-y-8 p-2">
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Export Format</label>
-              <select 
+              <select
                 value={exportFormat} 
                 onChange={e => setExportFormat(e.target.value as any)} 
                 className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
@@ -662,7 +717,7 @@ const Dashboard: React.FC = () => {
             
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">Export Method</label>
-              <select 
+              <select
                 value={exportMode} 
                 onChange={e => setExportMode(e.target.value as any)} 
                 className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-semibold"
