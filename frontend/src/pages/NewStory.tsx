@@ -110,12 +110,55 @@ const NewStory: React.FC = () => {
     setError('');
     setStory('');
     try {
-      const fullPrompt = `Title: ${title}\nGenre: ${genre}\nTone: ${tone}\nChapters: ${chapters}\nPrompt: ${prompt}`;
-      const storyText = await import('../services/storyService').then(m => m.generateStoryTxtFromN8n({ prompt: fullPrompt, genre, tone }));
-      setStory(storyText || '');
-      setShowResultModal(true);
+      // Fetch the .txt file from n8n as a blob
+      const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook-test/ultimate-agentic-novel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: `Title: ${title}\nGenre: ${genre}\nTone: ${tone}\nChapters: ${chapters}\nPrompt: ${prompt}`,
+          genre,
+          tone,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to generate story from n8n.");
+      }
+      // Check for .txt file type
+      const contentType = response.headers.get('Content-Type');
+      if (!contentType || !contentType.includes('text/plain')) {
+        throw new Error('n8n did not return a valid .txt file.');
+      }
+      const blob = await response.blob();
+      const storyText = await blob.text();
+      if (!storyText || storyText.trim().length === 0) {
+        throw new Error('The generated story is empty or could not be read.');
+      }
+      setStory(storyText);
+      // Save the story as a new project/chapter in Firestore
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
+      // Create a new project
+      const newProjectId = await createProject(user.uid, {
+        title,
+        genre,
+        description: prompt,
+        coverImage: '',
+        status: 'Draft',
+      });
+      // Add the story as the first chapter
+      await addChapter(user.uid, newProjectId, {
+        title,
+        content: storyText,
+        chapterNumber: 1,
+      });
+      // Redirect to Story View (Story Editor)
+      navigate(`/story-editor/${newProjectId}`);
     } catch (err: any) {
-      setError(typeof err === 'string' ? err : 'Story generation failed');
+      setError(typeof err === 'string' ? err : err.message || 'Story generation failed');
     } finally {
       setLoading(false);
     }

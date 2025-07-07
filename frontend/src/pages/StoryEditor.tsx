@@ -264,7 +264,7 @@ const StoryEditor: React.FC = () => {
   }, [user, projectId]);
 
   // Handle story form changes
-  const handleStoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleStoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setStoryForm({ ...storyForm, [e.target.name]: e.target.value });
   };
 
@@ -580,25 +580,31 @@ const StoryEditor: React.FC = () => {
                 </div>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Genre</label>
-                  <input
-                    type="text"
+                  <select
                     name="genre"
                     value={storyForm.genre}
                     onChange={handleStoryChange}
-                    placeholder="Genre"
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                  />
+                  >
+                    <option value="">Select genre</option>
+                    {genreOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tone</label>
-                    <input
-                      type="text"
+                  <select
                     name="tone"
                     value={storyForm.tone}
                     onChange={handleStoryChange}
-                    placeholder="Tone"
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                  />
+                  >
+                    <option value="">Select tone</option>
+                    {toneOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">View Mode</label>

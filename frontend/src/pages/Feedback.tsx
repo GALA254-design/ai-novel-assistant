@@ -76,6 +76,10 @@ const Feedback: React.FC = () => {
     setForm({ name: '', feedback: '' });
     setStar(0);
     setThumb(null);
+    showToast(
+      "Thank you for your feedback! Your thoughts help us improve. 🌟",
+      "success"
+    );
   };
 
   // Handle comment submit
