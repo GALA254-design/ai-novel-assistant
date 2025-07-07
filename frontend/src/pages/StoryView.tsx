@@ -36,6 +36,13 @@ const StoryView: React.FC = () => {
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  const genreOptions = [
+    'Fantasy', 'Science Fiction', 'Mystery', 'Romance', 'Thriller', 'Nonfiction', 'Other'
+  ];
+  const toneOptions = [
+    'Serious', 'Humorous', 'Dramatic', 'Light', 'Dark', 'Other'
+  ];
+
   useEffect(() => {
     if (user && projectId) {
       setLoading(true);
@@ -118,7 +125,7 @@ const StoryView: React.FC = () => {
     }
   }, [form, chapters, story, user, projectId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -459,20 +466,28 @@ const StoryView: React.FC = () => {
                   required
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                  <input
+                  <select
                     className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
                     name="genre"
                     value={form.genre || ''}
                     onChange={handleChange}
-                    placeholder="Genre..."
-                  />
-                  <input
+                  >
+                    <option value="">Select genre</option>
+                    {genreOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                  <select
                     className="w-full px-3 py-2 rounded-lg bg-transparent outline-none border border-blue-200 dark:border-orange-700 text-blue-500 dark:text-orange-200 font-semibold text-sm sm:text-base"
                     name="tone"
                     value={form.tone || ''}
                     onChange={handleChange}
-                    placeholder="Tone..."
-                  />
+                  >
+                    <option value="">Select tone</option>
+                    {toneOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Button variant="primary" onClick={handleSave} className="flex items-center gap-2">
@@ -557,52 +572,29 @@ const StoryView: React.FC = () => {
             <div className="lg:w-3/4 flex-1 min-w-0">
               {chapters.length > 0 ? (
                 <div className="w-full max-w-none lg:max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-4 sm:my-8 animate-fadeIn">
-                  {chapterEditMode ? (
-                    <div className="flex flex-col gap-4 sm:gap-6">
-                      <input
-                        name="title"
-                        value={chapterForm.title || ''}
-                        onChange={handleChapterChange}
-                        placeholder="CHAPTER 1: CHAPTER TITLE"
-                        className="w-full text-lg sm:text-xl lg:text-2xl font-bold bg-transparent outline-none px-4 sm:px-6 pt-6 sm:pt-8 pb-2 rounded-t-2xl"
-                        autoFocus
-                        required
-                      />
-                      <textarea
-                        name="content"
-                        value={chapterForm.content || ''}
-                        onChange={handleChapterChange}
-                        placeholder="Write your chapter content here..."
-                        className="w-full min-h-[50vh] sm:min-h-[60vh] bg-transparent outline-none resize-none px-4 sm:px-6 pb-6 sm:pb-8 text-base sm:text-lg lg:text-xl leading-relaxed font-medium rounded-b-2xl"
-                        style={{ fontFamily: 'serif', boxShadow: 'none', border: 'none' }}
-                        required
-                      />
-                      <div className="flex flex-col sm:flex-row gap-2 px-4 sm:px-6 pb-4 sm:pb-6">
-                        <Button variant="primary" onClick={handleChapterSave} className="flex items-center gap-2">
-                          <FiSave className="w-4 h-4" />
-                          Save Chapter
-                        </Button>
-                        <Button variant="secondary" onClick={() => setChapterEditMode(false)}>Cancel</Button>
+                  <div className="space-y-4 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <h2 className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-orange-300 mb-2">
+                          {chapters[currentChapterIndex]?.title}
+                        </h2>
                       </div>
                     </div>
-                  ) : (
-                    <div className="space-y-4 p-4 sm:p-6">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <h2 className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-orange-300 mb-2">
-                            {chapters[currentChapterIndex]?.title}
-                          </h2>
-                        </div>
-                        <Button variant="primary" onClick={handleEditChapter} className="flex items-center gap-2 w-full sm:w-auto">
-                          <FiEdit className="w-4 h-4" />
-                          Edit Chapter
-                        </Button>
-                      </div>
-                      <div className="prose prose-blue dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed text-gray-900 dark:text-gray-100 whitespace-pre-line">
-                        {chapters[currentChapterIndex]?.content}
-                      </div>
-                    </div>
-                  )}
+                    <textarea
+                      value={chapters[currentChapterIndex]?.content || ''}
+                      onChange={e => {
+                        const updatedChapters = [...chapters];
+                        updatedChapters[currentChapterIndex] = {
+                          ...updatedChapters[currentChapterIndex],
+                          content: e.target.value
+                        };
+                        setChapters(updatedChapters);
+                      }}
+                      className="w-full min-h-[40vh] bg-white dark:bg-slate-900 outline-none resize-y text-gray-900 dark:text-gray-100 leading-relaxed border-2 border-blue-200 dark:border-orange-700 rounded-xl p-3 focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
+                      style={{ fontFamily: 'Times New Roman, serif', fontSize: '1rem', lineHeight: '1.6' }}
+                      placeholder="Write or edit your chapter content here..."
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="w-full max-w-none lg:max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-0 my-4 sm:my-8 animate-fadeIn">
@@ -817,20 +809,28 @@ const StoryView: React.FC = () => {
                     placeholder="Project title..."
                   />
                   <div className="flex gap-4">
-                    <input
+                    <select
                       className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                       name="genre"
                       value={form.genre || ''}
                       onChange={handleChange}
-                      placeholder="Genre..."
-                    />
-                    <input
+                    >
+                      <option value="">Select genre</option>
+                      {genreOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    <select
                       className="flex-1 px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-blue-500 dark:text-orange-200 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200"
                       name="status"
                       value={form.status || ''}
                       onChange={handleChange}
-                      placeholder="Status..."
-                    />
+                    >
+                      <option value="">Select status</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Abandoned">Abandoned</option>
+                    </select>
                   </div>
                   <textarea
                     className="w-full px-4 py-2 rounded-xl border border-blue-200 dark:border-orange-700 bg-white/80 dark:bg-blue-950/80 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-orange-400 transition-all duration-200 resize-y"

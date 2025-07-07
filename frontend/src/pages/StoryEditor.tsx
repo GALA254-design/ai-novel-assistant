@@ -118,59 +118,14 @@ const StoryEditor: React.FC = () => {
 
   // Function to update content when editing a specific page
   const handlePageContentChange = (newPageContent: string) => {
-    const updatedPages = [...pages];
-    updatedPages[currentPage - 1] = newPageContent;
-    const updatedContent = updatedPages.join('\n\n');
-    
-    // Parse the combined content back into chapters
-    const chapterRegex = /CHAPTER\s+\d+[:\s]+([^\n]+)/gi;
-    const chapterMatches = [...updatedContent.matchAll(chapterRegex)];
-    
-    if (chapterMatches.length > 0) {
-      const newChapters = [];
-      let lastIndex = 0;
-      
-      for (let i = 0; i < chapterMatches.length; i++) {
-        const match = chapterMatches[i];
-        const chapterTitle = match[0];
-        const chapterStart = match.index!;
-        
-        // Get content from last chapter end to this chapter start
-        const chapterContent = updatedContent.substring(lastIndex, chapterStart).trim();
-        
-        if (i > 0) {
-          // Update previous chapter content
-          newChapters[i - 1].content = chapterContent;
-        }
-        
-        // Add new chapter
-        newChapters.push({
-          id: chapters[i]?.id || null,
-          title: chapterTitle,
-          content: '',
-          chapterNumber: i + 1,
-        });
-        
-        lastIndex = chapterStart + chapterTitle.length;
-      }
-      
-      // Add content for the last chapter
-      const lastChapterContent = updatedContent.substring(lastIndex).trim();
-      if (newChapters.length > 0) {
-        newChapters[newChapters.length - 1].content = lastChapterContent;
-      }
-      
-      setChapters(newChapters);
-    } else {
-      // No chapters detected, update the first chapter
-      if (chapters.length > 0) {
-        const updatedChapters = [...chapters];
-        updatedChapters[0] = {
-          ...updatedChapters[0],
-          content: updatedContent
-        };
-        setChapters(updatedChapters);
-      }
+    // Update the content of the current chapter (page)
+    if (chapters.length > 0 && currentPage - 1 < chapters.length) {
+      const updatedChapters = [...chapters];
+      updatedChapters[currentPage - 1] = {
+        ...updatedChapters[currentPage - 1],
+        content: newPageContent
+      };
+      setChapters(updatedChapters);
     }
   };
 
@@ -565,8 +520,8 @@ const StoryEditor: React.FC = () => {
           <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
             {/* Story Specifications */}
             <Card className="p-4 sm:p-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-0 shadow-xl">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="space-y-1 sm:space-y-2">
+              <div className="flex flex-col gap-4 w-full">
+                <div className="space-y-1">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Title</label>
                   <input
                     type="text"
@@ -578,53 +533,55 @@ const StoryEditor: React.FC = () => {
                     required
                   />
                 </div>
-                <div className="space-y-1 sm:space-y-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Genre</label>
-                  <select
-                    name="genre"
-                    value={storyForm.genre}
-                    onChange={handleStoryChange}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                  >
-                    <option value="">Select genre</option>
-                    {genreOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1 sm:space-y-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tone</label>
-                  <select
-                    name="tone"
-                    value={storyForm.tone}
-                    onChange={handleStoryChange}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                  >
-                    <option value="">Select tone</option>
-                    {toneOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1 sm:space-y-2">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">View Mode</label>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={documentViewMode ? "primary" : "secondary"}
-                      size="sm"
-                      onClick={() => setDocumentViewMode(true)}
-                      className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Genre</label>
+                    <select
+                      name="genre"
+                      value={storyForm.genre}
+                      onChange={handleStoryChange}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     >
-                      Document
-                    </Button>
-                    <Button
-                      variant={!documentViewMode ? "primary" : "secondary"}
-                      size="sm"
-                      onClick={() => setDocumentViewMode(false)}
-                      className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                      <option value="">Select genre</option>
+                      {genreOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">Tone</label>
+                    <select
+                      name="tone"
+                      value={storyForm.tone}
+                      onChange={handleStoryChange}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     >
-                      Editor
-                    </Button>
+                      <option value="">Select tone</option>
+                      {toneOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">View Mode</label>
+                    <div className="flex flex-row gap-2 sm:gap-3 w-full">
+                      <Button
+                        variant={documentViewMode ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => setDocumentViewMode(true)}
+                        className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                      >
+                        Document
+                      </Button>
+                      <Button
+                        variant={!documentViewMode ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => setDocumentViewMode(false)}
+                        className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+                      >
+                        Editor
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -651,8 +608,15 @@ const StoryEditor: React.FC = () => {
                   <textarea
                     key={`page-${currentPage}-${pages.length}`}
                     name="content"
-                    value={getCurrentPageContent()}
-                    onChange={(e) => handlePageContentChange(e.target.value)}
+                    value={chapters[currentPage - 1]?.content || ''}
+                    onChange={e => {
+                      const updatedChapters = [...chapters];
+                      updatedChapters[currentPage - 1] = {
+                        ...updatedChapters[currentPage - 1],
+                        content: e.target.value
+                      };
+                      setChapters(updatedChapters);
+                    }}
                     placeholder="Write your story content here... Use chapter headings like 'CHAPTER 1: Title' to create chapters automatically."
                     className="w-full h-full bg-transparent outline-none resize-none text-gray-900 dark:text-gray-100 leading-relaxed"
                     style={{ 
