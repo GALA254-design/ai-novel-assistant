@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { createProject, addChapter } from '../../services/storyService';
 import * as pdfjsLib from 'pdfjs-dist';
+import * as mammoth from 'mammoth';
 
 // Set up PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
@@ -77,27 +78,15 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
         }
       } else if (ext === 'docx' || ext === 'doc') {
         try {
-          // For DOCX/DOC, we'll use server-side extraction as fallback
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          const response = await fetch('/api/files/extract-pdf', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to extract DOCX');
-          }
-          
-          const data = await response.json();
-          text = data.text;
+          // Client-side DOCX extraction using mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const { value: text } = await mammoth.extractRawText({ arrayBuffer });
           setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
           setLoading(false);
           return;
         } catch (err) {
           console.error('DOCX extraction error:', err);
-          setError('Unsupported or unreadable file format (DOCX). You can manually paste the text below.');
+          setError('DOCX cannot be read. Please use a text file or copy-paste your story to continue.');
           setShowManualEntry(true);
           setFile(file);
           setLoading(false);
