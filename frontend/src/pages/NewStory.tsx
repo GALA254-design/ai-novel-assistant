@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProject, addChapter } from '../services/storyService';
+import { createProject, addChapter, createStory } from '../services/storyService';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
@@ -110,8 +112,9 @@ const NewStory: React.FC = () => {
     setError('');
     setStory('');
     try {
+      console.log('Starting story generation...');
       // Fetch the .txt file from n8n as a blob
-      const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook-test/ultimate-agentic-novel", {
+      const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,21 +126,19 @@ const NewStory: React.FC = () => {
         }),
       });
       if (!response.ok) {
+        console.error('Failed to generate story from n8n.');
         throw new Error("Failed to generate story from n8n.");
-      }
-      // Check for .txt file type
-      const contentType = response.headers.get('Content-Type');
-      if (!contentType || !contentType.includes('text/plain')) {
-        throw new Error('n8n did not return a valid .txt file.');
       }
       const blob = await response.blob();
       const storyText = await blob.text();
       if (!storyText || storyText.trim().length === 0) {
+        console.error('The generated story is empty or could not be read.');
         throw new Error('The generated story is empty or could not be read.');
       }
       setStory(storyText);
       // Save the story as a new project/chapter in Firestore
       if (!user) {
+        console.warn('User not authenticated, showing auth modal.');
         setShowAuthModal(true);
         return;
       }
@@ -155,10 +156,33 @@ const NewStory: React.FC = () => {
         content: storyText,
         chapterNumber: 1,
       });
+      // Create the story document in Firestore for StoryView with the same ID as the project
+      try {
+        await setDoc(doc(db, 'stories', newProjectId), {
+          title,
+          content: storyText,
+          authorId: user.uid,
+          authorName: user.displayName || '',
+          genre,
+          tone,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+        console.log('Successfully created story document in Firestore with ID:', newProjectId);
+      } catch (firestoreError) {
+        console.error('Error creating story document in Firestore:', firestoreError);
+        setError('Failed to create story document in Firestore.');
+        setLoading(false);
+        return;
+      }
+      // Add a small delay to ensure Firestore propagation
+      await new Promise(res => setTimeout(res, 500));
+      console.log('Navigating to /story-view/' + newProjectId);
       // Redirect to Story View (Story Editor)
-      navigate(`/story-editor/${newProjectId}`);
+      navigate(`/story-view/${newProjectId}`);
     } catch (err: any) {
       setError(typeof err === 'string' ? err : err.message || 'Story generation failed');
+      console.error('Error during story generation:', err);
     } finally {
       setLoading(false);
     }
