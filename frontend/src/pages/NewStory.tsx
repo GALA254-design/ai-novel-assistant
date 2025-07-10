@@ -130,11 +130,15 @@ const NewStory: React.FC = () => {
         throw new Error("Failed to generate story from n8n.");
       }
       const blob = await response.blob();
-      const storyText = await blob.text();
-      if (!storyText || storyText.trim().length === 0) {
-        console.error('The generated story is empty or could not be read.');
-        throw new Error('The generated story is empty or could not be read.');
-      }
+      const filename = `${title.trim().replace(/\s+/g, "_") || "novel"}.txt`;
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
       setStory(storyText);
       // Save the story as a new project/chapter in Firestore
       if (!user) {
