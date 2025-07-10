@@ -139,7 +139,7 @@ const NewStory: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
 
-      setStory(storyText);
+      // setStory(storyText);
       // Save the story as a new project/chapter in Firestore
       if (!user) {
         console.warn('User not authenticated, showing auth modal.');
