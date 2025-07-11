@@ -117,11 +117,11 @@ const AnalyticsDashboard: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Story Status Distribution</h3>
             </div>
             {/* Removed storyStats as it relied on 'status' */}
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-              <FiBarChart2 className="w-12 h-12 opacity-50 mb-4" />
-              <p className="text-lg font-medium">No data available</p>
-              <p className="text-sm">Start creating stories to see analytics</p>
-            </div>
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                <FiBarChart2 className="w-12 h-12 opacity-50 mb-4" />
+                <p className="text-lg font-medium">No data available</p>
+                <p className="text-sm">Start creating stories to see analytics</p>
+              </div>
           </Card>
 
           {/* AI Usage Chart */}

@@ -115,29 +115,36 @@ const NewStory: React.FC = () => {
       console.log('Starting story generation...');
       // Fetch the .txt file from n8n as a blob
       const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: `Title: ${title}\nGenre: ${genre}\nTone: ${tone}\nChapters: ${chapters}\nPrompt: ${prompt}`,
-          genre,
-          tone,
-        }),
-      });
+      method: "POST",
+      headers: {
+      "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+      title,                 
+      genre,                 
+      tone,                  
+      prompt,               
+      chapters                
+    }),
+  });
       if (!response.ok) {
         console.error('Failed to generate story from n8n.');
         throw new Error("Failed to generate story from n8n.");
       }
       const blob = await response.blob();
-      const filename = `${title.trim().replace(/\s+/g, "_") || "novel"}.txt`;
 
+      // Read the content from the blob
+      const storyText = await blob.text();     // ✅ Read as text
+      setStory(storyText);                     // ✅ Update UI
+
+      // Trigger file download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
+
 
       // setStory(storyText);
       // Save the story as a new project/chapter in Firestore
