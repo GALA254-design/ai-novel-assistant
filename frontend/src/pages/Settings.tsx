@@ -55,6 +55,11 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     if (user) {
+      setSettings(prev => ({
+        ...prev,
+        displayName: user.displayName || prev.displayName,
+        email: user.email || prev.email,
+      }));
       getDoc(doc(db, 'userPreferences', user.uid)).then(snapshot => {
         if (snapshot.exists()) {
           setSettings(prev => ({ ...prev, ...snapshot.data() }));

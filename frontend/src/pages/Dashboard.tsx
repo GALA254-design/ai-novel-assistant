@@ -291,8 +291,6 @@ const Dashboard: React.FC = () => {
 
   // Calculate stats from stories
   const totalStories = stories.length;
-  const completedStories = stories.filter(s => (s as any).status?.toLowerCase() === 'completed').length;
-  const aiGeneratedStories = stories.filter(s => s.authorName?.toLowerCase().includes('ai')).length;
 
   const handleExportAll = () => {
     setExportModalOpen(true);
@@ -470,35 +468,7 @@ const Dashboard: React.FC = () => {
             {/* Optionally, show analytics/upload below in a collapsed or faded style */}
             <div className="opacity-60 pointer-events-none select-none">
               <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 mt-8">
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiBookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{totalStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Total Stories</div>
-                  </div>
-                </Card>
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-green-50/90 via-emerald-100/80 to-teal-100/90 dark:from-green-900/50 dark:via-emerald-800/40 dark:to-teal-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiBarChart2 className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{completedStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Completed</div>
-                        </div>
-                      </Card>
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-purple-50/90 via-pink-100/80 to-rose-100/90 dark:from-purple-900/50 dark:via-pink-800/40 dark:to-rose-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center sm:col-span-2 lg:col-span-1 transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 via-pink-600 to-rose-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiZap className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{aiGeneratedStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">AI Generated</div>
-                  </div>
-            </Card>
-              </div>
+              {/* Removed the Total Stories card from main content area */}
             </div>
           </div>
         ) : (
@@ -507,35 +477,7 @@ const Dashboard: React.FC = () => {
             {/* Main Content - Full width on mobile */}
             <div className="flex-1 min-w-0 space-y-4 sm:space-y-6 w-full max-w-full order-2 lg:order-1">
               <UploadStoryCard key={uploadCardKey} onUpload={handleUpload} />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 mb-8 sm:mb-10">
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiBookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{totalStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Total Stories</div>
-                  </div>
-                </Card>
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-green-50/90 via-emerald-100/80 to-teal-100/90 dark:from-green-900/50 dark:via-emerald-800/40 dark:to-teal-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 via-emerald-600 to-teal-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiBarChart2 className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{completedStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">Completed</div>
-                  </div>
-                </Card>
-                <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-purple-50/90 via-pink-100/80 to-rose-100/90 dark:from-purple-900/50 dark:via-pink-800/40 dark:to-rose-900/50 border-0 w-full min-h-[180px] sm:min-h-[200px] px-6 py-8 flex flex-col items-center justify-center sm:col-span-2 lg:col-span-1 transform hover:scale-105 hover:-translate-y-1" variant="elevated" hover>
-                  <div className="flex flex-col items-center justify-center w-full h-full">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 via-pink-600 to-rose-700 rounded-full shadow-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
-                      <FiZap className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{aiGeneratedStories}</div>
-                    <div className="text-base sm:text-lg text-slate-600 dark:text-slate-400 font-semibold text-center">AI Generated</div>
-                  </div>
-                </Card>
-              </div>
+              {/* Removed the Total Stories card from main content area */}
               <div className="mb-6 sm:mb-8">
                 <div className="overflow-x-auto">
                   <DataTable
@@ -573,15 +515,7 @@ const Dashboard: React.FC = () => {
                   >
                     Export All Stories
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    icon={<FiTrash2 />}
-                    onClick={handleDeleteSelected}
-                    className="w-full justify-start shadow-sm hover:shadow-md transition-all duration-200 text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-xl"
-                  >
-                    Delete Selected
-                  </Button>
+                  {/* Removed Delete Selected button */}
                 </div>
             </Card>
               
@@ -618,6 +552,18 @@ const Dashboard: React.FC = () => {
                   )}
                 </div>
             </Card>
+            {/* Total Stories Card below Recent Activity */}
+            <div className="w-full flex justify-center">
+              <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full max-w-md min-h-[180px] sm:min-h-[220px] px-6 py-10 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1 mt-4" variant="elevated" hover>
+                <div className="flex flex-col items-center justify-center w-full h-full">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full shadow-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-2xl transition-all duration-500">
+                    <FiBookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-lg" />
+                  </div>
+                  <div className="text-5xl sm:text-6xl font-black text-slate-900 dark:text-slate-100 leading-none mb-2">{totalStories}</div>
+                  <div className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 font-semibold text-center">Total Stories</div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
         )}

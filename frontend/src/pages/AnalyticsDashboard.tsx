@@ -20,16 +20,11 @@ const AnalyticsDashboard: React.FC = () => {
   }, []);
 
   // Compute stats
-  const storyStats = [
-    { name: 'Drafts', value: stories.filter(s => s.status === 'Draft').length, color: '#3B82F6' },
-    { name: 'In Progress', value: stories.filter(s => s.status === 'Editing').length, color: '#F59E0B' },
-    { name: 'Completed', value: stories.filter(s => s.status === 'Completed').length, color: '#10B981' },
-    { name: 'AI Generated', value: stories.filter(s => s.authorName?.toLowerCase().includes('ai')).length, color: '#8B5CF6' },
-  ].filter(stat => stat.value > 0);
-
+  // Removed status-based stats since 'status' does not exist on Story
   const aiUsage = Object.entries(
     stories.reduce((acc, s) => {
-      const agent = s.agent || 'Unknown';
+      // Removed agent, use authorName for AI detection
+      const agent = s.authorName?.toLowerCase().includes('ai') ? 'AI' : (s.authorName || 'User');
       acc[agent] = (acc[agent] || 0) + 1;
       return acc;
     }, {} as Record<string, number>)
@@ -46,9 +41,8 @@ const AnalyticsDashboard: React.FC = () => {
 
   // Summary metrics
   const totalStories = stories.length;
-  const completedStories = stories.filter(s => s.status === 'Completed').length;
+  // Removed completedStories and completionRate since 'status' does not exist
   const aiGeneratedStories = stories.filter(s => s.authorName?.toLowerCase().includes('ai')).length;
-  const completionRate = totalStories > 0 ? Math.round((completedStories / totalStories) * 100) : 0;
 
   if (loading) {
     return (
@@ -96,17 +90,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-0 animate-fadeIn">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
-                <FiCheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Completed</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{completedStories}</p>
-              </div>
-            </div>
-          </Card>
+          {/* Removed Completed stories card */}
 
           <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-0 animate-fadeIn">
             <div className="flex items-center gap-4">
@@ -120,17 +104,8 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-0 animate-fadeIn">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-xl flex items-center justify-center">
-                <FiTrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Completion Rate</p>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{completionRate}%</p>
-              </div>
-            </div>
-          </Card>
+          {/* Optionally keep the completion rate card, but it will always be 0 or 100 without status */}
+          {/* Removed completion rate card */}
         </div>
 
         {/* Charts */}
@@ -141,43 +116,12 @@ const AnalyticsDashboard: React.FC = () => {
               <FiBarChart2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Story Status Distribution</h3>
             </div>
-            {storyStats.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
-                <FiBarChart2 className="w-12 h-12 opacity-50 mb-4" />
-                <p className="text-lg font-medium">No data available</p>
-                <p className="text-sm">Start creating stories to see analytics</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={storyStats}>
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    allowDecimals={false} 
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      border: 'none',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {storyStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+            {/* Removed storyStats as it relied on 'status' */}
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+              <FiBarChart2 className="w-12 h-12 opacity-50 mb-4" />
+              <p className="text-lg font-medium">No data available</p>
+              <p className="text-sm">Start creating stories to see analytics</p>
+            </div>
           </Card>
 
           {/* AI Usage Chart */}
