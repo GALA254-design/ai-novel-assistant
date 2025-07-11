@@ -52,6 +52,7 @@ const NewStory: React.FC = () => {
   const [metaComplete, setMetaComplete] = useState(false);
   const [genre, setGenre] = useState('Any');
   const [chapters, setChapters] = useState(1);
+  const [words, setWords] = useState(1000); // Default number of words
   // Remove metaComplete and Story Info form, move title input to generator form
   const [title, setTitle] = useState('');
   const [showAuthModal, setShowAuthModal] = React.useState(false);
@@ -124,7 +125,8 @@ const NewStory: React.FC = () => {
       genre,                 
       tone,                  
       prompt,               
-      chapters                
+      chapters,             
+      words                 // Pass words to backend
     }),
   });
       if (!response.ok) {
@@ -316,7 +318,7 @@ const NewStory: React.FC = () => {
               </div>
 
               {/* Mobile-Optimized Story Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                     Genre
@@ -343,7 +345,7 @@ const NewStory: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                <div className="space-y-2">
                   <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
                     Chapters
                   </label>
@@ -354,6 +356,19 @@ const NewStory: React.FC = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     value={chapters}
                     onChange={e => setChapters(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Words
+                  </label>
+                  <input
+                    type="number"
+                    step={1000}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                    value={words}
+                    onChange={e => setWords(Number(e.target.value))}
                   />
                 </div>
               </div>
@@ -434,6 +449,10 @@ const NewStory: React.FC = () => {
                 <div>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">Chapters:</span>
                   <p className="text-slate-600 dark:text-slate-300">{chapters}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">Words:</span>
+                  <p className="text-slate-600 dark:text-slate-300">{words}</p>
                 </div>
                 <div>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">Prompt:</span>
