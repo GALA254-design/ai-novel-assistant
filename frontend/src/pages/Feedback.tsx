@@ -144,7 +144,8 @@ const Feedback: React.FC = () => {
             <Button type="submit" variant="secondary" className="w-full sm:w-auto py-2 text-base shadow focus-visible:ring-2 focus-visible:ring-blue-500 dark:focus-visible:ring-orange-400">Send</Button>
           </form>
           <div className="flex flex-col gap-3">
-            {comments.length === 0 ? (
+            {/* Comments are no longer displayed after submission */}
+            {/* {comments.length === 0 ? (
               <div className="text-gray-400 text-center">No comments yet.</div>
             ) : (
               comments.map((c, i) => (
@@ -165,7 +166,7 @@ const Feedback: React.FC = () => {
                   </div>
                 </Card>
               ))
-            )}
+            )} */}
           </div>
         </Card>
       </div>

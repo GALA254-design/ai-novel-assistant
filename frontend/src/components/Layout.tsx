@@ -15,7 +15,6 @@ const Layout: React.FC = () => {
     ...(user ? [
       { name: 'Profile', icon: FiUser, to: '/profile' },
       { name: 'Settings', icon: FiSettings, to: '/settings' },
-      { name: 'Analytics', icon: FiBarChart2, to: '/analytics' },
       { name: 'Help', icon: FiInfo, to: '/help' },
     ] : []),
     { name: 'Feedback', icon: FiBell, to: '/feedback' },
@@ -96,7 +95,7 @@ const Layout: React.FC = () => {
           {/* User info at top */}
           {user && (
             <div className={`flex flex-col items-center py-6 transition-all duration-300 ${sidebarCollapsed ? 'py-4' : ''}`}>
-              <div className={`${sidebarCollapsed ? 'w-12 h-12' : 'w-16 h-16'} rounded-2xl shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden`}>
+              <div className={`${sidebarCollapsed ? 'w-12 h-12' : 'w-16 h-16'} rounded-full aspect-square shadow-lg border-2 border-slate-200 dark:border-slate-700 overflow-hidden`}>
                 <Avatar src={user.photoURL} name={user.displayName} size={sidebarCollapsed ? 48 : 64} />
               </div>
               {!sidebarCollapsed && (
@@ -173,7 +172,7 @@ const Layout: React.FC = () => {
               {/* User info at top for mobile */}
               {user && (
                 <div className="flex flex-col items-center py-8 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-b from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
-                  <div className="w-20 h-20 rounded-2xl shadow-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="w-20 h-20 rounded-full aspect-square shadow-xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
                     <Avatar src={user.photoURL} name={user.displayName} size={80} />
                   </div>
                   <span className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -273,7 +272,7 @@ const Layout: React.FC = () => {
           {({ isActive }) => (
             <>
               {user ? (
-                <div className={`rounded-xl border-2 p-0.5 transition-all duration-200 ${
+                <div className={`rounded-full aspect-square border-2 p-0.5 transition-all duration-200 ${
                   isActive 
                     ? 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
                     : 'border-slate-200 dark:border-slate-700'

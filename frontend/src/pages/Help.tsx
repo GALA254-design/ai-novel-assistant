@@ -85,7 +85,6 @@ const Help: React.FC = () => {
               <ul className="space-y-3 text-gray-800 dark:text-gray-100">
                 <li><b>How do I generate a story with AI?</b><br />Go to the Dashboard and press "New Story". Input your prompt and the specifications, then press "Generate Story".</li>
                 <li><b>Can I change my profile picture?</b><br />Yes, go to your Profile page and upload a new avatar.</li>
-                <li><b>How do I export my stories?</b><br />Use the Export tab in Settings or the export options in the Dashboard.</li>
                 <li><b>Is my data private?</b><br />Your stories and profile are private by default. See Privacy in Settings for more options.</li>
               </ul>
             </div>

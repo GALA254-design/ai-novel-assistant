@@ -116,19 +116,19 @@ const NewStory: React.FC = () => {
       console.log('Starting story generation...');
       // Fetch the .txt file from n8n as a blob
       const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
-      method: "POST",
-      headers: {
-      "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
       title,                 
-      genre,                 
-      tone,                  
+          genre,
+          tone,
       prompt,               
       chapters,             
       words                 // Pass words to backend
-    }),
-  });
+        }),
+      });
       if (!response.ok) {
         console.error('Failed to generate story from n8n.');
         throw new Error("Failed to generate story from n8n.");

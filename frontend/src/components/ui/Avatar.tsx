@@ -65,12 +65,12 @@ const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div 
-      className={`relative inline-block rounded-full overflow-hidden shadow-lg border-2 border-white/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl ${className}`} 
+      className={`relative inline-block rounded-full aspect-square overflow-hidden shadow-lg border-2 border-white/70 dark:border-slate-800/70 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl ${className}`} 
       style={{ width: size, height: size }}
       aria-label={name ? `Avatar for ${name}` : alt}
     >
       {loading ? (
-        <div className="flex items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-700">
+        <div className="flex items-center justify-center w-full h-full bg-slate-100 dark:bg-slate-700 aspect-square rounded-full">
           <svg 
             className="animate-spin text-slate-400" 
             width={size/3} 
@@ -97,7 +97,7 @@ const Avatar: React.FC<AvatarProps> = ({
         <img
           src={src}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover aspect-square rounded-full"
           onError={(e) => {
             // Fallback to initials if image fails to load
             const target = e.target as HTMLImageElement;
@@ -110,7 +110,7 @@ const Avatar: React.FC<AvatarProps> = ({
       {/* Fallback with initials or default icon */}
       {(!src || loading === false) && (
         <div 
-          className={`w-full h-full flex items-center justify-center font-bold text-white ${
+          className={`w-full h-full flex items-center justify-center font-bold text-white aspect-square rounded-full ${
             initials 
               ? `bg-gradient-to-br ${getGradient(name || 'User')}` 
               : 'bg-gradient-to-br from-slate-400 to-slate-600'

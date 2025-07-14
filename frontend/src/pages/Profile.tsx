@@ -8,9 +8,49 @@ import { useToast } from '../components/ui/Toast';
 import { useAuth } from '../context/AuthContext';
 import { NavLink } from 'react-router-dom';
 import { FiEdit2, FiAward, FiArrowLeft, FiUser, FiMail, FiLock, FiCamera, FiSave, FiLogOut, FiActivity, FiStar } from 'react-icons/fi';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { updateProfile, updateEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+// Utility to resize and compress image
+async function resizeAndCompressImage(file: File, maxSize = 256, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxSize) {
+          height = Math.round((height *= maxSize / width));
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width = Math.round((width *= maxSize / height));
+          height = maxSize;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Image compression failed'));
+        },
+        'image/jpeg',
+        quality
+      );
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -122,38 +162,51 @@ const Profile: React.FC = () => {
     setPassword({ current: '', new: '', confirm: '' });
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      // Validate file type and size
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file.', 'error');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        showToast('Image is too large (max 2MB).', 'error');
+        return;
+      }
       setAvatarLoading(true);
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const newAvatar = event.target?.result as string;
-        setProfile(prev => ({ ...prev, avatar: newAvatar }));
-        try {
-          if (auth.currentUser) {
-            await updateProfile(auth.currentUser, {
-              displayName: profile.name,
-              photoURL: newAvatar,
-            });
-            await setDoc(doc(db, 'users', auth.currentUser.uid), {
-              displayName: profile.name,
-              email: profile.email,
-              photoURL: newAvatar,
-            }, { merge: true });
-          }
-          await updateUser({
+      try {
+        // Resize and compress image before upload
+        const compressedBlob = await resizeAndCompressImage(file, 256, 0.7);
+        const compressedFile = new File([compressedBlob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, `avatars/${user.uid}/${compressedFile.name}`);
+        await uploadBytes(storageRef, compressedFile);
+        const downloadURL = await getDownloadURL(storageRef);
+        setProfile(prev => ({ ...prev, avatar: downloadURL }));
+        // Update Auth and Firestore
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, {
+            displayName: profile.name,
+            photoURL: downloadURL,
+          });
+          await setDoc(doc(db, 'users', auth.currentUser.uid), {
             displayName: profile.name,
             email: profile.email,
-            photoURL: newAvatar,
-          });
-          showToast('Avatar updated successfully!', 'success');
-        } catch (error) {
-          showToast('Failed to update avatar. Please try again.', 'error');
-        } finally {
-          setAvatarLoading(false);
+            photoURL: downloadURL,
+          }, { merge: true });
         }
-      };
-      reader.readAsDataURL(e.target.files[0]);
+        await updateUser({
+          displayName: profile.name,
+          email: profile.email,
+          photoURL: downloadURL,
+        });
+        showToast('Avatar updated successfully!', 'success');
+      } catch (error) {
+        showToast('Failed to upload avatar. Please try again.', 'error');
+      } finally {
+        setAvatarLoading(false);
+      }
     }
   };
 
@@ -176,16 +229,17 @@ const Profile: React.FC = () => {
         {/* Cover image */}
         <div className="relative h-36 md:h-48 w-full rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-400 to-pink-400 shadow-2xl mb-12 flex items-end overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-          <div className="absolute left-1/2 md:left-12 bottom-[-56px] md:bottom-[-64px] z-10 transform -translate-x-1/2 md:translate-x-0">
-            <div className="relative">
+          <div className="absolute left-1/2 md:left-12 bottom-0 md:bottom-0 z-10 transform -translate-x-1/2 md:translate-x-0">
+            <div className="relative rounded-full aspect-square w-[112px] h-[112px] flex items-center justify-center overflow-hidden">
               <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={112} className="ring-4 ring-white dark:ring-slate-900 shadow-xl" />
               <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 shadow-lg transition-all duration-200 hover:scale-110" title="Upload new avatar">
                 <FiCamera size={16} />
-                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarLoading} />
               </label>
               {avatarLoading && (
                 <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-2 text-white font-semibold">Uploading...</span>
                 </div>
               )}
             </div>

@@ -519,40 +519,8 @@ const Dashboard: React.FC = () => {
                 </div>
             </Card>
               
-              <Card className="p-4 sm:p-6 bg-gradient-to-br from-white via-blue-50 to-indigo-50 dark:from-blue-950 dark:via-slate-900 dark:to-indigo-950 border-0 rounded-2xl shadow-xl" variant="elevated">
-                <h4 className="font-extrabold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-slate-100 mb-3 sm:mb-4 flex items-center gap-2 tracking-tight">
-                  <span className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-600 shadow mr-2">
-                    <FiClock className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
-                  </span>
-                  Recent Activity
-                </h4>
-                <div className="space-y-2 sm:space-y-3">
-                {recentActivity.length === 0 ? (
-                    <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center py-4">
-                      No recent activity.
-                    </div>
-                ) : (
-                  recentActivity.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200">
-                        <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${
-                          item.type === 'upload' ? 'bg-blue-500' : 
-                          item.type === 'edit' ? 'bg-green-500' : 
-                          'bg-red-500'
-                        }`}></div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium truncate">
-                            {item.text}
-                          </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">
-                            {item.time}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-            </Card>
-            {/* Total Stories Card below Recent Activity */}
+              {/* Removed Recent Activity card */}
+            {/* Total Stories Card below Quick Actions */}
             <div className="w-full flex justify-center">
               <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full max-w-md min-h-[180px] sm:min-h-[220px] px-6 py-10 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1 mt-4" variant="elevated" hover>
                 <div className="flex flex-col items-center justify-center w-full h-full">
