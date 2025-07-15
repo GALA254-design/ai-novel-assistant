@@ -396,14 +396,16 @@ const StoryViewEditor: React.FC = () => {
   };
 
   const handleExport = (format: string) => {
-    if (!story) return;
-    
-    const content = story.content || '';
-    const title = story.title || 'Untitled Story';
-    
+    let title = form.title && form.title.trim() ? form.title : 'Untitled Story';
+    let content = form.content || '';
+    if (!form.title || !form.title.trim()) {
+      showToast('No title provided. Exporting as "Untitled Story".', 'warning');
+    }
+    if (!form.content || !form.content.trim()) {
+      showToast('No content provided. Exporting empty story.', 'warning');
+    }
     switch (format) {
-      case 'pdf':
-        // Create PDF using browser print functionality
+      case 'pdf': {
         const printWindow = window.open('', '_blank');
         if (printWindow) {
           printWindow.document.write(`
@@ -426,9 +428,8 @@ const StoryViewEditor: React.FC = () => {
           printWindow.print();
         }
         break;
-        
-      case 'txt':
-        // Download as text file
+      }
+      case 'txt': {
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -439,9 +440,8 @@ const StoryViewEditor: React.FC = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         break;
-        
-      case 'docx':
-        // For DOCX, we'll use a simple approach - download as HTML that can be opened in Word
+      }
+      case 'docx': {
         const htmlContent = `
           <html>
             <head>
@@ -464,8 +464,8 @@ const StoryViewEditor: React.FC = () => {
         document.body.removeChild(docxA);
         URL.revokeObjectURL(docxUrl);
         break;
+      }
     }
-    
     setShowExportModal(false);
     showToast(`Story exported as ${format.toUpperCase()} successfully!`, 'success');
   };
@@ -487,7 +487,15 @@ const StoryViewEditor: React.FC = () => {
                 <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm lg:text-base font-medium">Read and edit your story</p>
               </div>
             </div>
-            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
+              >
+                Back
+              </Button>
               <Button 
                 variant="secondary" 
                 size="sm"
@@ -495,14 +503,6 @@ const StoryViewEditor: React.FC = () => {
                 className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
               >
                 Export
-              </Button>
-              <Button 
-                variant="primary" 
-                size="sm"
-                onClick={handleCancel}
-                className="text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl"
-              >
-                Back
               </Button>
             </div>
           </div>
@@ -627,29 +627,7 @@ const StoryViewEditor: React.FC = () => {
             {/* Mobile-Optimized Sidebar - Full width on mobile, sidebar on desktop */}
             <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col gap-4 sm:gap-6 order-1 lg:order-2 lg:sticky lg:top-24 lg:self-start min-w-0 max-w-full">
               {/* AI Tools */}
-              <Card className="p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-                <h4 className="font-bold mb-3 sm:mb-4 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">AI Tools</h4>
-                <div className="space-y-2 sm:space-y-3">
-                  <Button
-                    variant="secondary"
-                    onClick={handleAiRefine}
-                    disabled={aiRefining || !form.content}
-                    className="w-full flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-3 rounded-xl"
-                  >
-                    {aiRefining ? <Loader size={12} className="sm:w-3.5 sm:h-3.5" /> : <FiZap className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    {aiRefining ? 'Refining...' : 'Refine Story'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleAiContinue}
-                    disabled={aiContinuing || !form.content}
-                    className="w-full flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-3 rounded-xl"
-                  >
-                    {aiContinuing ? <Loader size={12} className="sm:w-3.5 sm:h-3.5" /> : <FiEdit3 className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    {aiContinuing ? 'Continuing...' : 'Continue Story'}
-                  </Button>
-                </div>
-              </Card>
+              {/* Removed AI Tools card */}
 
               {/* Story Stats */}
               <Card className="p-4 sm:p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
@@ -694,6 +672,51 @@ const StoryViewEditor: React.FC = () => {
             </div>
           </div>
         </div>
+        {/* Export Modal */}
+        <Modal isOpen={showExportModal} onClose={() => setShowExportModal(false)} title="Export Story">
+          <div className="space-y-4">
+            <p className="text-blue-900 dark:text-blue-100">
+              Choose the format you'd like to export your story in:
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('pdf')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              PDF Document
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('txt')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              Text File (.txt)
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleExport('docx')}
+              className="flex items-center gap-2"
+            >
+              <FiFileText className="w-4 h-4" />
+              Word Document (.docx)
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => window.print()}
+              className="flex items-center gap-2"
+            >
+              <FiDownload className="w-4 h-4" />
+              Print
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setShowExportModal(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     );
   }

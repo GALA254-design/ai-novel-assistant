@@ -52,10 +52,12 @@ const NewStory: React.FC = () => {
   const [metaComplete, setMetaComplete] = useState(false);
   const [genre, setGenre] = useState('Any');
   const [chapters, setChapters] = useState(1);
-  const [words, setWords] = useState(100000); // Default number of words is the minimum
+  const [words, setWords] = useState<string | number>(1000); // Allow string for controlled input
+  const [wordWarning, setWordWarning] = useState('');
   // Remove metaComplete and Story Info form, move title input to generator form
   const [title, setTitle] = useState('');
   const [showAuthModal, setShowAuthModal] = React.useState(false);
+  const [loadingLog, setLoadingLog] = useState<string>('');
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -110,94 +112,68 @@ const NewStory: React.FC = () => {
       return;
     }
     setLoading(true);
+    setLoadingLog('Contacting AI and preparing your story...');
     setError('');
     setStory('');
     try {
-      console.log('Starting story generation...');
-      // Fetch the .txt file from n8n as a blob
+      // Step 1: Contacting AI
+      setLoadingLog('Contacting AI and preparing your story...');
       const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-      title,                 
+          title,
           genre,
           tone,
-      prompt,               
-      chapters,             
-      words                 // Pass words to backend
+          prompt,
+          chapters,
+          words
         }),
       });
       if (!response.ok) {
-        console.error('Failed to generate story from n8n.');
+        setLoadingLog('Failed to generate story.');
         throw new Error("Failed to generate story from n8n.");
       }
+      // Step 2: Generating story
+      setLoadingLog('AI is generating your story... This may take a moment.');
       const blob = await response.blob();
-
-      // Read the content from the blob
-      const storyText = await blob.text();     // ✅ Read as text
-      setStory(storyText);                     // ✅ Update UI
-
-      // Trigger file download
+      // Step 3: Downloading story
+      setLoadingLog('Downloading your story...');
+      const storyText = await blob.text();
+      setStory(storyText);
+      // Step 4: Saving story
+      setLoadingLog('Saving your story to your library...');
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
-
-
-      // setStory(storyText);
-      // Save the story as a new project/chapter in Firestore
       if (!user) {
-        console.warn('User not authenticated, showing auth modal.');
+        setLoadingLog('User not authenticated.');
         setShowAuthModal(true);
         return;
       }
-      // Create a new project
-      const newProjectId = await createProject(user.uid, {
-        title,
-        genre,
-        description: prompt,
-        coverImage: '',
-        status: 'Draft',
-      });
-      // Add the story as the first chapter
-      await addChapter(user.uid, newProjectId, {
+      // Save story using createStory so it is associated with the user
+      await createStory({
         title,
         content: storyText,
-        chapterNumber: 1,
+        genre,
+        tone,
+        authorId: user.uid,
+        authorName: user.displayName || '',
       });
-      // Create the story document in Firestore for StoryView with the same ID as the project
-      try {
-        await setDoc(doc(db, 'stories', newProjectId), {
-          title,
-          content: storyText,
-          authorId: user.uid,
-          authorName: user.displayName || '',
-          genre,
-          tone,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-        console.log('Successfully created story document in Firestore with ID:', newProjectId);
-      } catch (firestoreError) {
-        console.error('Error creating story document in Firestore:', firestoreError);
-        setError('Failed to create story document in Firestore.');
-        setLoading(false);
-        return;
-      }
-      // Add a small delay to ensure Firestore propagation
+      setLoadingLog('Story saved! Redirecting you to your story...');
       await new Promise(res => setTimeout(res, 500));
-      console.log('Navigating to /story-view/' + newProjectId);
-      // Redirect to Story View (Story Editor)
-      navigate(`/story-view/${newProjectId}`);
+      navigate(`/story-view/${projectId}`);
     } catch (err: any) {
       setError(typeof err === 'string' ? err : err.message || 'Story generation failed');
-      console.error('Error during story generation:', err);
+      setLoadingLog('An error occurred. Please try again.');
     } finally {
       setLoading(false);
+      setLoadingLog('');
     }
   };
 
@@ -366,12 +342,27 @@ const NewStory: React.FC = () => {
                   <input
                     type="number"
                     min={0}
-                    max={150000}
+                    max={300000}
                     step={1000}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                    value={words}
-                    onChange={e => setWords(Number(e.target.value))}
+                    value={words === 0 ? '' : words}
+                    onChange={e => {
+                      let valStr = e.target.value.replace(/^0+(?!$)/, '');
+                      if (valStr === '') {
+                        setWords('');
+                        setWordWarning('');
+                        return;
+                      }
+                      const val = Number(valStr);
+                      setWords(val);
+                      if (val < 100) setWordWarning('This is very short! Consider at least 100 words for a meaningful story.');
+                      else if (val > 200000) setWordWarning('This is very long! Consider keeping stories under 200,000 words for best results.');
+                      else setWordWarning('');
+                    }}
                   />
+                  {wordWarning && (
+                    <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">{wordWarning}</div>
+                  )}
                 </div>
               </div>
 
@@ -383,9 +374,12 @@ const NewStory: React.FC = () => {
                 className="w-full py-3 sm:py-4 text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
-                    Generating Story...
+                  <div className="flex flex-col items-center gap-2 w-full">
+                    <div className="flex items-center gap-2 w-full justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                      Generating Story...
+                    </div>
+                    <span className="text-xs text-white/90 mt-1 w-full text-center">{loadingLog}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -454,7 +448,7 @@ const NewStory: React.FC = () => {
                 </div>
                 <div>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">Words:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{words}</p>
+                  <p className="text-slate-600 dark:text-slate-300">{typeof words === 'number' ? words : 0}</p>
                 </div>
                 <div>
                   <span className="font-semibold text-slate-700 dark:text-slate-200">Prompt:</span>

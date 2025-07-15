@@ -226,33 +226,21 @@ const Profile: React.FC = () => {
       </div>
 
       <div className="w-full max-w-6xl mx-auto">
-        {/* Cover image */}
-        <div className="relative h-36 md:h-48 w-full rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-400 to-pink-400 shadow-2xl mb-12 flex items-end overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-          <div className="absolute left-1/2 md:left-12 bottom-0 md:bottom-0 z-10 transform -translate-x-1/2 md:translate-x-0">
-            <div className="relative rounded-full aspect-square w-[112px] h-[112px] flex items-center justify-center overflow-hidden">
-              <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={112} className="ring-4 ring-white dark:ring-slate-900 shadow-xl" />
-              <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 shadow-lg transition-all duration-200 hover:scale-110" title="Upload new avatar">
-                <FiCamera size={16} />
-                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={avatarLoading} />
-              </label>
-              {avatarLoading && (
-                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span className="ml-2 text-white font-semibold">Uploading...</span>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Avatar display (no camera/edit) */}
+        <div className="flex flex-col items-center mb-6">
+          <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={112} className="ring-4 ring-white dark:ring-slate-900 shadow-xl" />
         </div>
+        {/* Cover image */}
+        {/* Removed avatar/profile picture and upload button */}
 
-        <div className="flex flex-col lg:flex-row gap-8 w-full mt-16 md:mt-12">
-          {/* Left: Profile Card & Tabs */}
-          <div className="w-full lg:w-2/3">
+        {/* Center the card under the avatar on all screen sizes */}
+        <div className="flex flex-col items-center w-full mt-16 md:mt-12">
+          {/* Profile Card & Tabs */}
+          <div className="w-full max-w-2xl">
             <Card className="p-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
-              <div className="text-center lg:text-left mb-8">
+              <div className="text-center mb-8">
                 <h2 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mb-2 tracking-tight">{profile.name}</h2>
-                <p className="text-base text-slate-500 dark:text-slate-400 mb-3 font-semibold flex items-center justify-center lg:justify-start gap-2">
+                <p className="text-base text-slate-500 dark:text-slate-400 mb-3 font-semibold flex items-center justify-center gap-2">
                   <FiMail className="w-4 h-4" />
                   {profile.email}
                 </p>
@@ -292,11 +280,6 @@ const Profile: React.FC = () => {
               )}
               {/* Removed Security tab content */}
             </Card>
-          </div>
-
-          {/* Right: Recent Activity/Badges */}
-          <div className="w-full lg:w-1/3 flex flex-col gap-6">
-            {/* Removed Pro Writer and AI Explorer cards */}
           </div>
         </div>
 

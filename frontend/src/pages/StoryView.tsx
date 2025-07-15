@@ -647,31 +647,7 @@ const StoryView: React.FC = () => {
             </div>
             {/* Right: AI Tools and Stats - full width on mobile */}
             <div className="lg:w-1/4 w-full flex-shrink-0 flex flex-col gap-4 sm:gap-6 lg:sticky lg:top-20 lg:self-start min-w-0">
-              {/* AI Tools */}
-              <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
-                <h4 className="font-bold mb-3 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">AI Tools</h4>
-                <div className="space-y-2 sm:space-y-3">
-                  <Button
-                    variant="secondary"
-                    onClick={handleAiRefine}
-                    disabled={aiRefining || !chapters[currentChapterIndex]?.content}
-                    className="w-full flex items-center gap-2 text-sm"
-                  >
-                    {aiRefining ? <Loader size={14} /> : <FiZap className="w-4 h-4" />}
-                    {aiRefining ? 'Refining...' : 'Refine Chapter'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleAiContinue}
-                    disabled={aiContinuing || !chapters[currentChapterIndex]?.content}
-                    className="w-full flex items-center gap-2 text-sm"
-                  >
-                    {aiContinuing ? <Loader size={14} /> : <FiEdit3 className="w-4 h-4" />}
-                    {aiContinuing ? 'Continuing...' : 'Continue Chapter'}
-                  </Button>
-                </div>
-              </Card>
-
+              {/* Removed AI Tools card */}
               <Card className="p-3 sm:p-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-xl">
                 <h4 className="font-bold mb-2 bg-gradient-to-r from-blue-700 to-indigo-500 dark:from-orange-300 dark:to-pink-400 bg-clip-text text-transparent text-sm sm:text-base">Chapter Stats</h4>
                 <div className="space-y-2 text-xs sm:text-sm text-blue-900 dark:text-blue-100">
