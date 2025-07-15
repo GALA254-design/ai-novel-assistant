@@ -185,28 +185,28 @@ const Profile: React.FC = () => {
         const downloadURL = await getDownloadURL(storageRef);
         setProfile(prev => ({ ...prev, avatar: downloadURL }));
         // Update Auth and Firestore
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, {
-            displayName: profile.name,
+          if (auth.currentUser) {
+            await updateProfile(auth.currentUser, {
+              displayName: profile.name,
             photoURL: downloadURL,
-          });
-          await setDoc(doc(db, 'users', auth.currentUser.uid), {
+            });
+            await setDoc(doc(db, 'users', auth.currentUser.uid), {
+              displayName: profile.name,
+              email: profile.email,
+            photoURL: downloadURL,
+            }, { merge: true });
+          }
+          await updateUser({
             displayName: profile.name,
             email: profile.email,
-            photoURL: downloadURL,
-          }, { merge: true });
-        }
-        await updateUser({
-          displayName: profile.name,
-          email: profile.email,
           photoURL: downloadURL,
-        });
-        showToast('Avatar updated successfully!', 'success');
-      } catch (error) {
+          });
+          showToast('Avatar updated successfully!', 'success');
+        } catch (error) {
         showToast('Failed to upload avatar. Please try again.', 'error');
-      } finally {
-        setAvatarLoading(false);
-      }
+        } finally {
+          setAvatarLoading(false);
+        }
     }
   };
 
@@ -228,7 +228,7 @@ const Profile: React.FC = () => {
       <div className="w-full max-w-6xl mx-auto">
         {/* Avatar display (no camera/edit) */}
         <div className="flex flex-col items-center mb-6">
-          <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={112} className="ring-4 ring-white dark:ring-slate-900 shadow-xl" />
+              <Avatar src={profile.avatar || user?.photoURL} name={profile.name} size={112} className="ring-4 ring-white dark:ring-slate-900 shadow-xl" />
         </div>
         {/* Cover image */}
         {/* Removed avatar/profile picture and upload button */}

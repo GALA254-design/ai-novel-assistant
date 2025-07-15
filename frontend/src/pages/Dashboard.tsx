@@ -528,16 +528,16 @@ const Dashboard: React.FC = () => {
                   Recent Activity
                 </h4>
                 <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto pr-1">
-                  {recentActivity.length === 0 ? (
+                {recentActivity.length === 0 ? (
                     <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm text-center py-4">
                       No recent activity.
                     </div>
-                  ) : (
+                ) : (
                     recentActivity.slice(0, 10).map((item, i) => (
                       <div key={i} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors duration-200">
                         <div className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0
                           ${item.type === 'upload' ? 'bg-blue-500' : 
-                            item.type === 'edit' ? 'bg-green-500' : 
+                          item.type === 'edit' ? 'bg-green-500' : 
                             'bg-red-500'} text-white`}>
                           {item.type === 'upload' ? <FiUpload className="w-4 h-4" /> :
                             item.type === 'edit' ? <FiEdit2 className="w-4 h-4" /> :
@@ -555,7 +555,7 @@ const Dashboard: React.FC = () => {
                     ))
                   )}
                 </div>
-              </Card>
+            </Card>
             {/* Total Stories Card below Quick Actions */}
             <div className="w-full flex justify-center">
               <Card className="group hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-blue-50/90 via-blue-100/80 to-indigo-100/90 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-indigo-900/50 border-0 w-full max-w-md min-h-[180px] sm:min-h-[220px] px-6 py-10 flex flex-col items-center justify-center transform hover:scale-105 hover:-translate-y-1 mt-4" variant="elevated" hover>

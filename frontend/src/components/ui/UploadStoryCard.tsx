@@ -27,6 +27,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [fullText, setFullText] = useState('');
 
   // Client-side PDF text extraction
   const extractPdfTextClient = async (file: File): Promise<string> => {
@@ -57,6 +58,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
     setFile(file);
     setLoading(true);
     setShowManualEntry(false);
+    setFullText('');
     
     try {
       let text = '';
@@ -65,7 +67,8 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
       if (ext === 'pdf') {
         try {
           text = await extractPdfTextClient(file);
-          setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
+          setFullText(text);
+          setPreview(text.length > 2000 ? text.slice(0, 2000) + '... (truncated)' : text);
           setLoading(false);
           return;
         } catch (err) {
@@ -81,7 +84,8 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           // Client-side DOCX extraction using mammoth
           const arrayBuffer = await file.arrayBuffer();
           const { value: text } = await mammoth.extractRawText({ arrayBuffer });
-          setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
+          setFullText(text);
+          setPreview(text.length > 2000 ? text.slice(0, 2000) + '... (truncated)' : text);
           setLoading(false);
           return;
         } catch (err) {
@@ -97,7 +101,8 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           const reader = new FileReader();
           reader.onload = (e) => {
             text = e.target?.result as string;
-            setPreview(text.slice(0, 2000) + (text.length > 2000 ? '... (truncated)' : ''));
+            setFullText(text);
+            setPreview(text.length > 2000 ? text.slice(0, 2000) + '... (truncated)' : text);
             setLoading(false);
           };
           reader.onerror = () => {
@@ -164,6 +169,7 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
           className="w-full mt-2"
           onClick={async () => {
             setPreview(preview);
+            setFullText(preview); // Ensure manual entry is uploaded in full
             setShowManualEntry(false);
           }}
           disabled={!preview.trim()}
@@ -231,8 +237,8 @@ const UploadStoryCard: React.FC<UploadStoryCardProps> = ({ onUpload, onStoryExtr
       <Button
         variant="primary"
         className="w-full mt-3 text-lg font-bold py-3 shadow-lg hover:shadow-2xl transition-all duration-200"
-        onClick={handleUpload ? () => handleUpload(preview, file!) : undefined}
-        disabled={!file || !preview || loading}
+        onClick={handleUpload ? () => handleUpload(fullText, file!) : undefined}
+        disabled={!file || !fullText || loading}
       >
         Upload Story
       </Button>

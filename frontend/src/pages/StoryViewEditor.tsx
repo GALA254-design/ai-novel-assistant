@@ -66,12 +66,20 @@ const StoryViewEditor: React.FC = () => {
           const storyData = { id: storyDoc.id, ...storyDoc.data() } as Story;
           setStory(storyData);
           setForm(storyData);
+          console.log('DEBUG: Loaded story content length:', (form.content || '').length);
+          console.log('DEBUG: Loaded story content preview:', (form.content || '').slice(0, 200));
         }
       })();
     } else {
       setLoading(false);
     }
   }, [user, projectId]);
+
+  // Debug: Log content length and preview after form.content changes
+  useEffect(() => {
+    console.log('DEBUG: form.content length at render:', (form.content || '').length);
+    console.log('DEBUG: form.content preview:', (form.content || '').slice(0, 200));
+  }, [form.content]);
 
   // Function to detect chapters from story content
   const detectChaptersFromContent = (content: string): Chapter[] => {
@@ -120,66 +128,62 @@ const StoryViewEditor: React.FC = () => {
     return chapters;
   };
 
-  // Function to split content into pages (1800 chars per page)
-  const splitContentIntoPages = (content: string): string[] => {
+  // --- ROBUST CHARACTER-BASED PAGINATION FIX ---
+  const splitContentIntoPagesWithBounds = (content: string): { text: string, start: number, end: number }[] => {
     const charsPerPage = 1800;
-    const pages: string[] = [];
-    let currentPage = '';
-    let charCount = 0;
-    
-    const lines = content.split('\n');
-    
-    for (const line of lines) {
-      const lineLength = line.length + 1; // +1 for newline
-      
-      if (charCount + lineLength > charsPerPage && currentPage.trim()) {
-        // Current page is full, start new page
-        pages.push(currentPage.trim());
-        currentPage = line + '\n';
-        charCount = lineLength;
-      } else {
-        // Add line to current page
-        currentPage += line + '\n';
-        charCount += lineLength;
-      }
+    const pages: { text: string, start: number, end: number }[] = [];
+    let start = 0;
+    while (start < content.length) {
+      const end = Math.min(start + charsPerPage, content.length);
+      pages.push({
+        text: content.slice(start, end),
+        start,
+        end
+      });
+      start = end;
     }
-    
-    // Add the last page if it has content
-    if (currentPage.trim()) {
-      pages.push(currentPage.trim());
-    }
-    
-    return pages.length > 0 ? pages : [''];
+    return pages.length > 0 ? pages : [{ text: '', start: 0, end: 0 }];
   };
 
-  // Memoized page calculations to prevent infinite re-renders
-  const pages = useMemo(() => {
-    return splitContentIntoPages(form.content || '');
-  }, [form.content]);
+  // State for page bounds
+  const [pageBounds, setPageBounds] = useState<{ text: string, start: number, end: number }[]>([]);
 
-  // Update totalPages when pages change
+  // Update page bounds and totalPages when content changes
   useEffect(() => {
-    setTotalPages(pages.length);
-  }, [pages.length]);
+    const bounds = splitContentIntoPagesWithBounds(form.content || '');
+    setPageBounds(bounds);
+    setTotalPages(bounds.length);
+    // Reset currentPage if out of bounds
+    if (currentPage > bounds.length) setCurrentPage(1);
+    // Debug output:
+    console.log('DEBUG: Page bounds:', bounds);
+    console.log('DEBUG: Total pages:', bounds.length);
+    console.log('DEBUG: Content length:', (form.content || '').length);
+    // eslint-disable-next-line
+  }, [form.content]);
 
   // Get current page content
   const getCurrentPageContent = (): string => {
-    return pages[currentPage - 1] || '';
+    return pageBounds[currentPage - 1]?.text || '';
   };
+
+  // Update only the edited page's slice in the full content
+  const handlePageContentChange = (newPageContent: string) => {
+    if (!pageBounds[currentPage - 1]) return;
+    const { start, end } = pageBounds[currentPage - 1];
+    const before = (form.content || '').slice(0, start);
+    const after = (form.content || '').slice(end);
+    // Ensure newPageContent ends with a newline for consistency
+    const newContent = before + newPageContent + after;
+    setForm({ ...form, content: newContent });
+  };
+  // --- ROBUST CHARACTER-BASED PAGINATION FIX END ---
 
   // Function to handle page navigation
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
-  };
-
-  // Function to update content when editing a specific page
-  const handlePageContentChange = (newPageContent: string) => {
-    const updatedPages = [...pages];
-    updatedPages[currentPage - 1] = newPageContent;
-    const updatedContent = updatedPages.join('\n\n');
-    setForm({ ...form, content: updatedContent });
   };
 
   // Merge all chapters into main story content
@@ -197,6 +201,8 @@ const StoryViewEditor: React.FC = () => {
       
       setForm({ ...form, content: combinedContent });
       showToast('Chapters merged into story content!', 'success');
+      console.log('DEBUG: Merged content length:', (form.content || '').length);
+      console.log('DEBUG: Merged content preview:', (form.content || '').slice(0, 200));
     } catch (error) {
       console.error('Error merging chapters:', error);
       showToast('Failed to merge chapters. Please try again.', 'error');
@@ -274,6 +280,8 @@ const StoryViewEditor: React.FC = () => {
           tone: form.tone,
         });
         setStory({ ...story, ...form, content: combinedContent });
+        console.log('DEBUG: Saved story content length:', (form.content || '').length);
+        console.log('DEBUG: Saved story content preview:', (form.content || '').slice(0, 200));
         
         // Save detected chapters to Firebase only when saving
         if (detectedChapters.length > 0) {
@@ -569,10 +577,10 @@ const StoryViewEditor: React.FC = () => {
                 <div className="relative p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-300px)]">
                   {/* Document Content Editor */}
                   <textarea
-                    key={`page-${currentPage}-${pages.length}`}
+                    key={`page-${currentPage}-${pageBounds.length}`}
                     name="content"
                     value={getCurrentPageContent()}
-                    onChange={(e) => handlePageContentChange(e.target.value)}
+                    onChange={e => handlePageContentChange(e.target.value)}
                     placeholder="Write your story content here... Use chapter headings like 'CHAPTER 1: Title' to create chapters automatically."
                     className="w-full h-full bg-transparent outline-none resize-none text-gray-900 dark:text-gray-100 leading-relaxed"
                     style={{ 
