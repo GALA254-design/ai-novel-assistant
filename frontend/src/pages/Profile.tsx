@@ -271,17 +271,7 @@ const Profile: React.FC = () => {
                   <FiUser className="w-4 h-4" />
                   Personal Info
                 </button>
-                <button 
-                  onClick={() => setActiveTab('security')} 
-                  className={`flex items-center gap-2 w-full sm:w-auto px-6 py-3 font-semibold rounded-t-xl sm:rounded-t-none sm:rounded-l-xl text-lg transition-all duration-200 ${
-                    activeTab === 'security' 
-                      ? 'text-blue-700 dark:text-orange-300 border-b-2 border-blue-600 dark:border-orange-400 bg-blue-50 dark:bg-blue-900/50' 
-                      : 'text-blue-700 dark:text-orange-300 bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                  }`}
-                >
-                  <FiLock className="w-4 h-4" />
-                  Security
-                </button>
+                {/* Removed Security tab */}
               </div>
 
               {/* Tab content */}
@@ -300,70 +290,13 @@ const Profile: React.FC = () => {
                   </Button>
                 </div>
               )}
-              {activeTab === 'security' && (
-                <div className="space-y-6">
-                  <Input label="Current Password" name="current" type="password" value={password.current} onChange={handlePasswordChange} leftIcon={<FiLock className="w-4 h-4" />} />
-                  <Input label="New Password" name="new" type="password" value={password.new} onChange={handlePasswordChange} leftIcon={<FiLock className="w-4 h-4" />} />
-                  <Input label="Confirm New Password" name="confirm" type="password" value={password.confirm} onChange={handlePasswordChange} leftIcon={<FiLock className="w-4 h-4" />} />
-                  <Button variant="primary" onClick={handleUpdatePassword} className="flex items-center gap-2">
-                    <FiLock className="w-4 h-4" />
-                    Update Password
-                  </Button>
-                </div>
-              )}
+              {/* Removed Security tab content */}
             </Card>
           </div>
 
           {/* Right: Recent Activity/Badges */}
           <div className="w-full lg:w-1/3 flex flex-col gap-6">
-            <Card className="p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-2xl border-0 animate-fadeIn">
-              <div className="flex items-center gap-3 mb-4">
-                <FiActivity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h4>
-              </div>
-              <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Logged in
-                </li>
-                <li className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  Updated profile
-                </li>
-                <li className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  Generated a story
-                </li>
-              </ul>
-            </Card>
-
-            <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-0 animate-fadeIn">
-              <div className="flex items-center gap-3 mb-4">
-                <FiAward className="text-yellow-500 w-6 h-6" />
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-gray-100">Pro Writer</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">For generating 10+ stories</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <FiStar className="w-4 h-4 text-yellow-500" />
-                <span>Unlocked achievement</span>
-              </div>
-            </Card>
-
-            <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-0 animate-fadeIn">
-              <div className="flex items-center gap-3 mb-4">
-                <FiStar className="text-purple-500 w-6 h-6" />
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-gray-100">AI Explorer</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Used AI features 5+ times</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <FiStar className="w-4 h-4 text-purple-500" />
-                <span>Unlocked achievement</span>
-              </div>
-            </Card>
+            {/* Removed Pro Writer and AI Explorer cards */}
           </div>
         </div>
 
