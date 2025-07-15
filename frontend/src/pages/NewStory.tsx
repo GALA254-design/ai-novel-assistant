@@ -29,6 +29,16 @@ const aiPromptExamples = [
   'A child finds a door to another world in their school library.'
 ];
 
+// Add a shuffle utility
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 const NewStory: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -51,13 +61,19 @@ const NewStory: React.FC = () => {
   const [statusInput, setStatusInput] = useState<'Draft' | 'Editing' | 'Completed'>('Draft');
   const [metaComplete, setMetaComplete] = useState(false);
   const [genre, setGenre] = useState('Any');
-  const [chapters, setChapters] = useState(1);
+  // Change chapters state to allow string or number
+  const [chapters, setChapters] = useState<string | number>(1);
   const [words, setWords] = useState<string | number>(1000); // Allow string for controlled input
   const [wordWarning, setWordWarning] = useState('');
   // Remove metaComplete and Story Info form, move title input to generator form
   const [title, setTitle] = useState('');
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [loadingLog, setLoadingLog] = useState<string>('');
+  const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
+
+  useEffect(() => {
+    setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
+  }, []);
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -271,7 +287,7 @@ const NewStory: React.FC = () => {
                 
                 {/* Mobile-Optimized Quick Prompts */}
                 <div className="flex flex-wrap gap-2">
-                  {aiPromptExamples.map((ex, i) => (
+                  {shuffledExamples.map((ex, i) => (
                     <button
                       key={i}
                       type="button"
@@ -328,10 +344,21 @@ const NewStory: React.FC = () => {
                   <input
                     type="number"
                     min={1}
-                    max={20}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
-                    value={chapters}
-                    onChange={e => setChapters(Number(e.target.value))}
+                    value={chapters === 0 ? '' : chapters}
+                    onChange={e => {
+                      const valStr = e.target.value;
+                      if (valStr === '') {
+                        setChapters('');
+                      } else {
+                        const val = Number(valStr);
+                        setChapters(val);
+                      }
+                    }}
+                    onBlur={e => {
+                      const val = Number(e.target.value);
+                      if (!val || val < 1) setChapters(1);
+                    }}
                   />
                 </div>
 

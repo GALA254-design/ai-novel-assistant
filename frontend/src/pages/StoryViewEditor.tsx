@@ -472,7 +472,7 @@ const StoryViewEditor: React.FC = () => {
         document.body.removeChild(docxA);
         URL.revokeObjectURL(docxUrl);
         break;
-      }
+    }
     }
     setShowExportModal(false);
     showToast(`Story exported as ${format.toUpperCase()} successfully!`, 'success');
