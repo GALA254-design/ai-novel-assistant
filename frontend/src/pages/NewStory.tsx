@@ -134,6 +134,9 @@ const NewStory: React.FC = () => {
   setStory('');
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 900000);
+    
     const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
       method: 'POST',
       headers: {
@@ -146,9 +149,12 @@ const NewStory: React.FC = () => {
         prompt,
         chapters,
         words
-      })
+      }),
+      signal: controller.signal
     });
 
+   clearTimeout(timeoutId);
+    
     if (!response.ok) throw new Error('Failed to generate story');
 
     const blob = await response.blob();
