@@ -135,7 +135,7 @@ const NewStory: React.FC = () => {
     
     try {
       // Create EventSource for real-time updates
-      const eventSource = new EventSource(`https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel${new URLSearchParams({
+      const eventSource = new EventSource(`https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel?${new URLSearchParams({
         title,
         genre,
         tone,
