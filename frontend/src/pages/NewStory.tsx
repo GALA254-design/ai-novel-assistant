@@ -120,70 +120,56 @@ const NewStory: React.FC = () => {
     setLoading(false);
   };
 
-  // Replace handleSubmit with handleSubmitWithSSE for the form submission
-  const handleSubmitWithSSE = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !prompt.trim()) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    
-    setLoading(true);
-    setLoadingLog('Starting story generation...');
-    setError('');
-    setStory('');
-    
-    try {
-      // Create EventSource for real-time updates
-      const eventSource = new EventSource(`https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel?${new URLSearchParams({
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!title.trim() || !prompt.trim()) {
+    setError('Please fill in all required fields');
+    return;
+  }
+
+  setLoading(true);
+  setLoadingLog('Starting story generation...');
+  setError('');
+  setStory('');
+
+  try {
+    const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         title,
         genre,
         tone,
         prompt,
-        chapters: chapters.toString(),
-        words: words.toString()
-      })}`);
-      
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'progress') {
-          setLoadingLog(data.message);
-        } else if (data.type === 'completed') {
-          setStory(data.story);
-          setLoadingLog('Story generation completed!');
-          
-          // Auto-download
-          const blob = new Blob([data.story], { type: 'text/plain' });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
-          a.click();
-          window.URL.revokeObjectURL(url);
-          
-          setLoading(false);
-          eventSource.close();
-        } else if (data.type === 'error') {
-          setError(data.message);
-          setLoading(false);
-          eventSource.close();
-        }
-      };
-      
-      eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
-        setError('Connection lost. Please try again.');
-        setLoading(false);
-        eventSource.close();
-      };
-      
-    } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate story');
-      setLoading(false);
-    }
-  };
+        chapters,
+        words
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to generate story');
+
+    const blob = await response.blob();
+
+    // Auto-download the novel file
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    setLoading(false);
+    setLoadingLog('Story generation completed!');
+  } catch (error) {
+    console.error('Error:', error);
+    setError(error instanceof Error ? error.message : 'Failed to download story');
+    setLoading(false);
+  }
+};
+
 
   // Save as chapter to the project
   const handleSaveAsProject = async () => {
