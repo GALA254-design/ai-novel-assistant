@@ -120,76 +120,68 @@ const NewStory: React.FC = () => {
     setLoading(false);
   };
 
-  // Handle story generation
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Replace handleSubmit with handleSubmitWithSSE for the form submission
+  const handleSubmitWithSSE = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !prompt.trim()) {
       setError('Please fill in all required fields');
       return;
     }
+    
     setLoading(true);
-    setLoadingLog('Contacting AI and preparing your story...');
+    setLoadingLog('Starting story generation...');
     setError('');
     setStory('');
+    
     try {
-      // Step 1: Contacting AI
-      setLoadingLog('Contacting AI and preparing your story...');
-      const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          genre,
-          tone,
-          prompt,
-          chapters,
-          words
-        }),
-      });
-      if (!response.ok) {
-        setLoadingLog('Failed to generate story.');
-        throw new Error("Failed to generate story from n8n.");
-      }
-      // Step 2: Generating story
-      setLoadingLog('AI is generating your story... This may take a moment.');
-      const blob = await response.blob();
-      // Step 3: Downloading story
-      setLoadingLog('Downloading your story...');
-      const storyText = await blob.text();
-      setStory(storyText);
-      // Step 4: Saving story
-      setLoadingLog('Saving your story to your library...');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      if (!user) {
-        setLoadingLog('User not authenticated.');
-        setShowAuthModal(true);
-        return;
-      }
-      // Save story using createStory so it is associated with the user
-      await createStory({
+      // Create EventSource for real-time updates
+      const eventSource = new EventSource(`https://n8nromeo123987.app.n8n.cloud/webhook/story-stream?${new URLSearchParams({
         title,
-        content: storyText,
         genre,
         tone,
-        authorId: user.uid,
-        authorName: user.displayName || '',
-      });
-      setLoadingLog('Story saved! Redirecting you to your story...');
-      await new Promise(res => setTimeout(res, 500));
-      navigate(`/story-view/${projectId}`);
-    } catch (err: any) {
-      setError(typeof err === 'string' ? err : err.message || 'Story generation failed');
-      setLoadingLog('An error occurred. Please try again.');
-    } finally {
+        prompt,
+        chapters: chapters.toString(),
+        words: words.toString()
+      })}`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'progress') {
+          setLoadingLog(data.message);
+        } else if (data.type === 'completed') {
+          setStory(data.story);
+          setLoadingLog('Story generation completed!');
+          
+          // Auto-download
+          const blob = new Blob([data.story], { type: 'text/plain' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          
+          setLoading(false);
+          eventSource.close();
+        } else if (data.type === 'error') {
+          setError(data.message);
+          setLoading(false);
+          eventSource.close();
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        setError('Connection lost. Please try again.');
+        setLoading(false);
+        eventSource.close();
+      };
+      
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate story');
       setLoading(false);
-      setLoadingLog('');
     }
   };
 
@@ -261,7 +253,7 @@ const NewStory: React.FC = () => {
 
           {/* Mobile-Optimized Main Form Card */}
           <Card className="p-4 sm:p-6 lg:p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-0 shadow-2xl">
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSubmitWithSSE} className="space-y-4 sm:space-y-6">
               {/* Title Section */}
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
