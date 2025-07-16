@@ -239,7 +239,7 @@ const NewStory: React.FC = () => {
 
           {/* Mobile-Optimized Main Form Card */}
           <Card className="p-4 sm:p-6 lg:p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-0 shadow-2xl">
-            <form onSubmit={handleSubmitWithSSE} className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Title Section */}
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
