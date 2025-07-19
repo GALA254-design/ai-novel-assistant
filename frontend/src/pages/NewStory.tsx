@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProject, addChapter, createStory } from '../services/storyService';
+import { createProject, addChapter, createStory, generateStoryHybrid } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
@@ -70,6 +70,9 @@ const NewStory: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [loadingLog, setLoadingLog] = useState<string>('');
   const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
+  const [testMode, setTestMode] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [pendingStory, setPendingStory] = useState('');
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
@@ -128,15 +131,19 @@ const NewStory: React.FC = () => {
     return;
   }
 
+  if (!user) {
+    setShowAuthModal(true);
+    return;
+  }
+
   setLoading(true);
-  setLoadingLog('Starting story generation...');
+  setLoadingLog('Triggering AI generation...');
   setError('');
   setStory('');
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 900000);
-    
+    setLoadingLog('Fetching from n8n...');
+    // Call n8n and expect the story in the response (not saving to Firebase yet)
     const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
       method: 'POST',
       headers: {
@@ -147,31 +154,55 @@ const NewStory: React.FC = () => {
         genre,
         tone,
         prompt,
-        chapters,
-        words
-      }),
-      signal: controller.signal
+        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+        words: typeof words === 'number' ? words : parseInt(words as string) || 1000
+      })
     });
-
-   clearTimeout(timeoutId);
-    
     if (!response.ok) throw new Error('Failed to generate story');
-
-    const blob = await response.blob();
-
-    // Auto-download the novel file
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title.trim().replace(/\s+/g, "_") || "story"}.txt`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-
+    const storyText = await response.text();
+    setPendingStory(storyText);
+    setShowPreviewModal(true);
+    setLoadingLog('Previewing story...');
     setLoading(false);
-    setLoadingLog('Story generation completed!');
   } catch (error) {
     console.error('Error:', error);
-    setError(error instanceof Error ? error.message : 'Failed to download story');
+    setError(error instanceof Error ? error.message : 'Failed to generate story');
+    setLoading(false);
+  }
+};
+
+// Test function to verify Firebase integration
+const handleTestFirebase = async () => {
+  if (!user) {
+    setShowAuthModal(true);
+    return;
+  }
+
+  setLoading(true);
+  setLoadingLog('Testing Firebase integration...');
+  setError('');
+
+  try {
+    const result = await generateStoryHybrid({
+      title: 'Test Story',
+      prompt: 'A robot learns to write poetry in a world where emotions are forbidden.',
+      genre: 'Sci-Fi',
+      tone: 'Serious',
+      chapters: 1,
+      words: 500,
+      userId: user.uid
+    });
+
+    setLoading(false);
+    setLoadingLog('Test completed successfully!');
+    setError('');
+    
+    // Show success message
+    alert(`Test successful! Story ID: ${result.storyId}\nStory length: ${result.story.length} characters`);
+    
+  } catch (error) {
+    console.error('Test error:', error);
+    setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     setLoading(false);
   }
 };
@@ -193,6 +224,32 @@ const NewStory: React.FC = () => {
       setError('Could not save story. Please try again.');
     }
     setSaving(false);
+  };
+
+  const handleSavePreviewStory = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setLoading(true);
+    setLoadingLog('Saving to Firebase...');
+    try {
+      const storyId = await createStory({
+        title,
+        content: pendingStory,
+        authorId: user.uid,
+        authorName: user.displayName || '',
+        genre,
+        tone,
+      });
+      setLoadingLog('Story generation completed!');
+      setShowPreviewModal(false);
+      setLoading(false);
+      navigate(`/story-view/${storyId}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to save story');
+      setLoading(false);
+    }
   };
 
   // Cancel handler
@@ -400,6 +457,20 @@ const NewStory: React.FC = () => {
                 )}
               </Button>
 
+              {/* Test Firebase Integration Button */}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleTestFirebase}
+                disabled={loading}
+                className="w-full py-2 sm:py-3 text-sm sm:text-base font-medium bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2">
+                  <FiZap className="w-4 h-4" />
+                  Test Firebase Integration
+                </div>
+              </Button>
+
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-red-700 dark:text-red-300 font-medium text-center text-sm sm:text-base">
                   {error}
@@ -504,6 +575,19 @@ const NewStory: React.FC = () => {
         </Modal>
       </div>
       <RequireAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Preview Your Story">
+        <div className="flex flex-col gap-4 h-full max-h-[80vh] w-full max-w-4xl mx-auto">
+          <div className="prose prose-slate dark:prose-invert max-w-none">
+            <div className="whitespace-pre-line text-slate-700 dark:text-slate-200 leading-relaxed">
+              {pendingStory}
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button variant="secondary" onClick={() => setShowPreviewModal(false)} className="px-6 py-2">Cancel</Button>
+            <Button variant="primary" onClick={handleSavePreviewStory} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">Save</Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };

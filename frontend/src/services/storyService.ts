@@ -12,6 +12,7 @@ import {
   deleteDoc,
   Timestamp,
   getDoc,
+  setDoc,
 } from 'firebase/firestore';
 
 export interface GenerateStoryParams {
@@ -117,6 +118,182 @@ export async function generateStoryTxtFromN8n({ prompt, genre, tone }) {
   }
   const blob = await response.blob();
   return await blob.text();
+}
+
+// New function to generate story via Firebase
+export async function generateStoryViaFirebase({ 
+  title, 
+  prompt, 
+  genre, 
+  tone, 
+  chapters, 
+  words, 
+  userId 
+}: {
+  title: string;
+  prompt: string;
+  genre: string;
+  tone: string;
+  chapters: number;
+  words: number;
+  userId: string;
+}) {
+  // Create a temporary document to track the generation
+  const generationId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const generationRef = doc(db, 'storyGenerations', generationId);
+  
+  // Initialize the generation document
+  await setDoc(generationRef, {
+    userId,
+    title,
+    prompt,
+    genre,
+    tone,
+    chapters,
+    words,
+    status: 'pending',
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now()
+  });
+
+  // Trigger n8n workflow with Firebase save instruction
+  const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title,
+      genre,
+      tone,
+      prompt,
+      chapters,
+      words,
+      saveToFirebase: true,
+      generationId,
+      userId
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to trigger story generation');
+  }
+
+  // Poll for the result
+  let attempts = 0;
+  const maxAttempts = 60; // 5 minutes with 5-second intervals
+  const pollInterval = 5000; // 5 seconds
+
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    
+    const generationDoc = await getDoc(generationRef);
+    if (generationDoc.exists()) {
+      const data = generationDoc.data();
+      if (data.status === 'completed' && data.story) {
+        // Create the story in Firebase
+        const storyId = await createStory({
+          title: data.title || title,
+          content: data.story,
+          authorId: userId,
+          authorName: '', // Will be filled by the component
+          genre: data.genre || genre,
+          tone: data.tone || tone,
+        });
+
+        // Clean up the generation document
+        await deleteDoc(generationRef);
+
+        return {
+          storyId,
+          story: data.story,
+          title: data.title || title
+        };
+      } else if (data.status === 'failed') {
+        await deleteDoc(generationRef);
+        throw new Error(data.error || 'Story generation failed');
+      }
+    }
+    
+    attempts++;
+  }
+
+  // Clean up if timeout
+  await deleteDoc(generationRef);
+  throw new Error('Story generation timed out. Please try again.');
+}
+
+// Hybrid function that tries Firebase first, falls back to file download
+export async function generateStoryHybrid({ 
+  title, 
+  prompt, 
+  genre, 
+  tone, 
+  chapters, 
+  words, 
+  userId 
+}: {
+  title: string;
+  prompt: string;
+  genre: string;
+  tone: string;
+  chapters: number;
+  words: number;
+  userId: string;
+}) {
+  try {
+    // Try Firebase method first
+    return await generateStoryViaFirebase({
+      title,
+      prompt,
+      genre,
+      tone,
+      chapters,
+      words,
+      userId
+    });
+  } catch (error) {
+    console.log('Firebase method failed, falling back to file download:', error);
+    
+    // Fallback to file download method
+    const response = await fetch("https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        title,
+        genre,
+        tone,
+        prompt,
+        chapters,
+        words
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate story');
+    }
+
+    const blob = await response.blob();
+    const storyContent = await blob.text();
+
+    // Create story in Firebase manually
+    const storyId = await createStory({
+      title,
+      content: storyContent,
+      authorId: userId,
+      authorName: '',
+      genre,
+      tone,
+    });
+
+    return {
+      storyId,
+      story: storyContent,
+      title
+    };
+  }
 }
 
 export async function createStory(story: Omit<Story, 'id' | 'createdAt' | 'updatedAt'>) {
