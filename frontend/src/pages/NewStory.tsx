@@ -187,6 +187,7 @@ const NewStory: React.FC = () => {
 
   if (!userId) {
     setShowAuthModal(true);
+    setError('You must be logged in to generate a story.');
     return;
   }
 
@@ -198,19 +199,22 @@ const NewStory: React.FC = () => {
   try {
     setLoadingLog('⏳ Waiting for your story to be written. This can take a minute or two for longer stories.');
     // Call n8n and expect the story in the response (not saving to Firebase yet)
+    const postBody = {
+      title,
+      genre,
+      tone,
+      prompt,
+      userId: userId,
+      chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+      words: typeof words === 'number' ? words : parseInt(words as string) || 1000
+    };
+    console.log('POST body:', postBody);
     const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        title,
-        genre,
-        tone,
-        prompt,
-        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-        words: typeof words === 'number' ? words : parseInt(words as string) || 1000
-      })
+      body: JSON.stringify(postBody)
     });
     if (!response.ok) throw new Error('Failed to generate story');
     const storyText = await response.text();
