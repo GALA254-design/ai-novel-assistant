@@ -52,6 +52,7 @@ function RealtimeStatusMessage({ realtimeStatus }: { realtimeStatus: { chapters:
 
 const NewStory: React.FC = () => {
   const { user } = useAuth();
+  const userId = user?.uid;
   const navigate = useNavigate();
   // Metadata and project state
   const [meta, setMeta] = useState<{ title: string; genre: string; description: string; coverImage: string; status: 'Draft' | 'Editing' | 'Completed'; }>({ title: '', genre: '', description: '', coverImage: '', status: 'Draft' });
@@ -107,9 +108,9 @@ const NewStory: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!userId) return;
     const db = getDatabase();
-    const execRef = ref(db, `/runningExecution/${user.uid}`);
+    const execRef = ref(db, `/runningExecution/${userId}`);
     const unsubscribe = onValue(execRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
@@ -121,12 +122,12 @@ const NewStory: React.FC = () => {
       }
     });
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [userId]);
 
   // Add this useEffect after user is available, before the real-time listener
   useEffect(() => {
-    if (!user) return;
-    const executionRef = ref(getDatabase(), `runningExecution/${user.uid}`);
+    if (!userId) return;
+    const executionRef = ref(getDatabase(), `runningExecution/${userId}`);
     // One-time check on mount
     get(executionRef).then((snapshot) => {
       if (snapshot.exists()) {
@@ -137,7 +138,14 @@ const NewStory: React.FC = () => {
         setShowPreviewModal(true);
       }
     });
-  }, [user]);
+  }, [userId]);
+
+  // Add a check at the top of the component to block actions and show the auth modal if userId is not present
+  useEffect(() => {
+    if (!userId) {
+      setShowAuthModal(true);
+    }
+  }, [userId]);
 
   // Handle metadata form submit: create project immediately
   const handleMetaSubmit = async (e: React.FormEvent) => {
@@ -146,7 +154,7 @@ const NewStory: React.FC = () => {
       setError('Please fill in all required fields');
       return;
     }
-    if (!user) return;
+    if (!userId) return;
     setLoading(true);
     setError('');
     const updatedMeta = {
@@ -157,7 +165,7 @@ const NewStory: React.FC = () => {
       status: statusInput,
     };
     try {
-      const newProjectId = await createProject(user.uid, updatedMeta);
+      const newProjectId = await createProject(userId, updatedMeta);
       setMeta(updatedMeta);
       setProjectId(newProjectId);
       setPrompt(descriptionInput);
@@ -175,7 +183,7 @@ const NewStory: React.FC = () => {
     return;
   }
 
-  if (!user) {
+  if (!userId) {
     setShowAuthModal(true);
     return;
   }
@@ -217,10 +225,10 @@ const NewStory: React.FC = () => {
 
   // Save as chapter to the project
   const handleSaveAsProject = async () => {
-    if (!user || !projectId) return;
+    if (!userId || !projectId) return;
     setSaving(true);
     try {
-      await addChapter(user.uid, projectId, {
+      await addChapter(userId, projectId, {
         title: meta.title,
         content: story,
         chapterNumber: 1,
@@ -234,7 +242,7 @@ const NewStory: React.FC = () => {
   };
 
   const handleSavePreviewStory = async () => {
-    if (!user) {
+    if (!userId) {
       setShowAuthModal(true);
       return;
     }
@@ -244,14 +252,14 @@ const NewStory: React.FC = () => {
       const storyId = await createStory({
         title,
         content: pendingStory,
-        authorId: user.uid,
-        authorName: user.displayName || '',
+        authorId: userId,
+        authorName: user?.displayName || '',
         genre,
         tone,
       });
       // Clean up reealtime db
       const db = getDatabase();
-      const execRef = ref(db, `/runningExecution/${user.uid}`);
+      const execRef = ref(db, `/runningExecution/${userId}`);
       await remove(execRef);
       setLoadingLog('Story generation completed!');
       setShowPreviewModal(false);
@@ -270,7 +278,7 @@ const NewStory: React.FC = () => {
 
   // Example usage in a handler:
   const handleCreateStory = async () => {
-    if (!user) {
+    if (!userId) {
       setShowAuthModal(true);
       return;
     }
