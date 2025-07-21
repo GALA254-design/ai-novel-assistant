@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createProject, addChapter, createStory, generateStoryHybrid } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import { get, ref, onValue, remove, getDatabase } from 'firebase/database';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
@@ -39,6 +40,16 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
+// Move this to the top-level, outside the NewStory component
+function RealtimeStatusMessage({ realtimeStatus }: { realtimeStatus: { chapters: number } | null }) {
+  if (!realtimeStatus) return null;
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-green-700 font-medium text-center text-sm mb-2">
+      {realtimeStatus.chapters || 1} chapter{realtimeStatus.chapters > 1 ? 's' : ''} generated successfully!
+    </div>
+  );
+}
+
 const NewStory: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -70,9 +81,9 @@ const NewStory: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [loadingLog, setLoadingLog] = useState<string>('');
   const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
-  const [testMode, setTestMode] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
+  const [realtimeStatus, setRealtimeStatus] = useState<null | { chapters: number; story: string }>(null);
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
@@ -94,6 +105,39 @@ const NewStory: React.FC = () => {
     setCoverImageInput(meta.coverImage);
     setStatusInput(meta.status);
   }, []);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const db = getDatabase();
+    const execRef = ref(db, `/runningExecution/${user.uid}`);
+    const unsubscribe = onValue(execRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setRealtimeStatus(data);
+        setLoading(false);
+        setLoadingLog(`${data.chapters || 1} chapter${data.chapters > 1 ? 's' : ''} generated successfully!`);
+        setPendingStory(data.story || '');
+        setShowPreviewModal(true);
+      }
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // Add this useEffect after user is available, before the real-time listener
+  useEffect(() => {
+    if (!user) return;
+    const executionRef = ref(getDatabase(), `runningExecution/${user.uid}`);
+    // One-time check on mount
+    get(executionRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setLoading(false);
+        setLoadingLog('🔄 We found a story you were working on!');
+        setPendingStory(data.story || '');
+        setShowPreviewModal(true);
+      }
+    });
+  }, [user]);
 
   // Handle metadata form submit: create project immediately
   const handleMetaSubmit = async (e: React.FormEvent) => {
@@ -137,12 +181,12 @@ const NewStory: React.FC = () => {
   }
 
   setLoading(true);
-  setLoadingLog('Triggering AI generation...');
+  setLoadingLog('🚀 Starting your story...');
   setError('');
   setStory('');
 
   try {
-    setLoadingLog('Fetching from n8n...');
+    setLoadingLog('⏳ Waiting for your story to be written. This can take a minute or two for longer stories.');
     // Call n8n and expect the story in the response (not saving to Firebase yet)
     const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
       method: 'POST',
@@ -171,43 +215,6 @@ const NewStory: React.FC = () => {
   }
 };
 
-// Test function to verify Firebase integration
-const handleTestFirebase = async () => {
-  if (!user) {
-    setShowAuthModal(true);
-    return;
-  }
-
-  setLoading(true);
-  setLoadingLog('Testing Firebase integration...');
-  setError('');
-
-  try {
-    const result = await generateStoryHybrid({
-      title: 'Test Story',
-      prompt: 'A robot learns to write poetry in a world where emotions are forbidden.',
-      genre: 'Sci-Fi',
-      tone: 'Serious',
-      chapters: 1,
-      words: 500,
-      userId: user.uid
-    });
-
-    setLoading(false);
-    setLoadingLog('Test completed successfully!');
-    setError('');
-    
-    // Show success message
-    alert(`Test successful! Story ID: ${result.storyId}\nStory length: ${result.story.length} characters`);
-    
-  } catch (error) {
-    console.error('Test error:', error);
-    setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    setLoading(false);
-  }
-};
-
-
   // Save as chapter to the project
   const handleSaveAsProject = async () => {
     if (!user || !projectId) return;
@@ -232,7 +239,7 @@ const handleTestFirebase = async () => {
       return;
     }
     setLoading(true);
-    setLoadingLog('Saving to Firebase...');
+    setLoadingLog('Saving to Firestore...');
     try {
       const storyId = await createStory({
         title,
@@ -242,6 +249,10 @@ const handleTestFirebase = async () => {
         genre,
         tone,
       });
+      // Clean up reealtime db
+      const db = getDatabase();
+      const execRef = ref(db, `/runningExecution/${user.uid}`);
+      await remove(execRef);
       setLoadingLog('Story generation completed!');
       setShowPreviewModal(false);
       setLoading(false);
@@ -457,20 +468,6 @@ const handleTestFirebase = async () => {
                 )}
               </Button>
 
-              {/* Test Firebase Integration Button */}
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleTestFirebase}
-                disabled={loading}
-                className="w-full py-2 sm:py-3 text-sm sm:text-base font-medium bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <div className="flex items-center gap-2">
-                  <FiZap className="w-4 h-4" />
-                  Test Firebase Integration
-                </div>
-              </Button>
-
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-red-700 dark:text-red-300 font-medium text-center text-sm sm:text-base">
                   {error}
@@ -588,6 +585,7 @@ const handleTestFirebase = async () => {
           </div>
         </div>
       </Modal>
+      <RealtimeStatusMessage realtimeStatus={realtimeStatus} />
     </>
   );
 };
