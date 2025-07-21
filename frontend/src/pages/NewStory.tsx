@@ -5,7 +5,7 @@ import { createProject, addChapter, createStory, generateStoryHybrid } from '../
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { get, ref, onValue, remove, getDatabase } from 'firebase/database';
-import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
+import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus, FiCheckCircle } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
 import Button from '../components/ui/Button';
@@ -85,6 +85,8 @@ const NewStory: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
   const [realtimeStatus, setRealtimeStatus] = useState<null | { chapters: number; story: string }>(null);
+  // Add autoSaveStatus state
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
@@ -594,6 +596,33 @@ const NewStory: React.FC = () => {
         </div>
       </Modal>
       <RealtimeStatusMessage realtimeStatus={realtimeStatus} />
+      {autoSaveStatus === 'saving' && (
+        <Card className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-200 dark:border-green-700">
+          <div className="flex items-center justify-center gap-4 text-green-700 dark:text-green-300">
+            <div className="flex items-center gap-2">
+              <FiCheckCircle className="w-5 h-5 animate-pulse" />
+              <span className="font-semibold">Auto-saving story...</span>
+            </div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+          </div>
+        </Card>
+      )}
+      {autoSaveStatus === 'saved' && (
+        <Card className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-200 dark:border-green-700">
+          <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+            <FiCheckCircle className="w-5 h-5" />
+            <span className="font-semibold">Story auto-saved successfully!</span>
+          </div>
+        </Card>
+      )}
+      {autoSaveStatus === 'failed' && (
+        <Card className="p-4 bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-200 dark:border-red-700">
+          <div className="flex items-center justify-center gap-2 text-red-700 dark:text-red-300">
+            <FiX className="w-5 h-5" />
+            <span className="font-semibold">Auto-save failed - story available for manual save</span>
+          </div>
+        </Card>
+      )}
     </>
   );
 };
