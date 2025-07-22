@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProject, addChapter, createStory } from '../services/storyService';
+import { createProject, addChapter, createStory, generateStoryHybrid } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
-import { db, firebaseApp } from '../firebase';
-import { getDatabase, ref, onValue, off, remove } from 'firebase/database';
+import { db } from '../firebase';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
@@ -30,11 +29,7 @@ const aiPromptExamples = [
   'A child finds a door to another world in their school library.'
 ];
 
-// Constants for RTDB paths
-const RTDB_PATHS = {
-  RUNNING_EXECUTION: (userId: string) => `runningExecution/${userId}`
-};
-
+// Add a shuffle utility
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -48,19 +43,10 @@ const NewStory: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.uid;
   const navigate = useNavigate();
-  const rtdb = getDatabase(firebaseApp);
-  const listenerRef = useRef<any>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const [meta, setMeta] = useState<{ title: string; genre: string; description: string; coverImage: string; status: 'Draft' | 'Editing' | 'Completed'; }>({ 
-    title: '', 
-    genre: '', 
-    description: '', 
-    coverImage: '', 
-    status: 'Draft' 
-  });
+  // Metadata and project state
+  const [meta, setMeta] = useState<{ title: string; genre: string; description: string; coverImage: string; status: 'Draft' | 'Editing' | 'Completed'; }>({ title: '', genre: '', description: '', coverImage: '', status: 'Draft' });
   const [projectId, setProjectId] = useState<string | null>(null);
+  // Generator state
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState('Any');
   const [loading, setLoading] = useState(false);
@@ -68,6 +54,7 @@ const NewStory: React.FC = () => {
   const [story, setStory] = useState('');
   const [showResultModal, setShowResultModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Add dedicated state for each input
   const [titleInput, setTitleInput] = useState('');
   const [genreInput, setGenreInput] = useState('');
   const [descriptionInput, setDescriptionInput] = useState('');
@@ -75,249 +62,170 @@ const NewStory: React.FC = () => {
   const [statusInput, setStatusInput] = useState<'Draft' | 'Editing' | 'Completed'>('Draft');
   const [metaComplete, setMetaComplete] = useState(false);
   const [genre, setGenre] = useState('Any');
+  // Change chapters state to allow string or number
   const [chapters, setChapters] = useState<string | number>(1);
-  const [words, setWords] = useState<string | number>(1000);
+  const [words, setWords] = useState<string | number>(1000); // Allow string for controlled input
   const [wordWarning, setWordWarning] = useState('');
+  // Remove metaComplete and Story Info form, move title input to generator form
   const [title, setTitle] = useState('');
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [loadingLog, setLoadingLog] = useState<string>('');
   const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
+  const [testMode, setTestMode] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
-  const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'completed'>('idle');
 
   useEffect(() => {
-    const examples = shuffleArray(aiPromptExamples).slice(0, 5);
-    setShuffledExamples(examples);
-    
-    if (user?.uid) {
-      checkForRunningExecution();
-    }
-    
-    return () => {
-      cleanupListenersAndTimers();
+    setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      if (typeof e.detail === 'string') setPrompt(e.detail);
     };
-  }, [user]);
+    window.addEventListener('use-prompt-template', handler as EventListener);
+    return () => window.removeEventListener('use-prompt-template', handler as EventListener);
+  }, []);
 
-  const cleanupListenersAndTimers = () => {
-    if (listenerRef.current) {
-      off(listenerRef.current);
-      listenerRef.current = null;
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+  // When modal opens, initialize input states from meta (only once)
+  useEffect(() => {
+    setTitleInput(meta.title);
+    setGenreInput(meta.genre);
+    setDescriptionInput(meta.description);
+    setCoverImageInput(meta.coverImage);
+    setStatusInput(meta.status);
+  }, []);
 
-  const checkForRunningExecution = async () => {
-    if (!user?.uid) return;
-    
-    setLoading(true);
-    setLoadingLog('Checking for running executions...');
-    
-    try {
-      const path = RTDB_PATHS.RUNNING_EXECUTION(user.uid);
-      const rtdbRef = ref(rtdb, path);
-      
-      const snapshot = await new Promise((resolve) => {
-        listenerRef.current = onValue(rtdbRef, (snapshot) => {
-          resolve(snapshot);
-        }, { onlyOnce: true });
-      });
-      
-      if ((snapshot as any).exists()) {
-        setLoadingLog('Found running execution, processing...');
-        await handleRTDBDataFound((snapshot as any).val());
-        return;
-      }
-      
-      setLoadingLog('No active execution found, starting periodic checks...');
-      startPeriodicChecking();
-    } catch (error) {
-      console.error('Error checking for running execution:', error);
-      setError('Failed to check for running execution');
-      setLoading(false);
-    }
-  };
-
-  const startPeriodicChecking = () => {
-    if (!user?.uid) return;
-    
-    const path = RTDB_PATHS.RUNNING_EXECUTION(user.uid);
-    const rtdbRef = ref(rtdb, path);
-    
-    intervalRef.current = setInterval(async () => {
-      try {
-        const snapshot = await new Promise((resolve) => {
-          listenerRef.current = onValue(rtdbRef, (snapshot) => {
-            resolve(snapshot);
-          }, { onlyOnce: true });
-        });
-        
-        if ((snapshot as any).exists()) {
-          clearInterval(intervalRef.current as NodeJS.Timeout);
-          intervalRef.current = null;
-          setLoadingLog('Found execution data, processing...');
-          await handleRTDBDataFound((snapshot as any).val());
-        }
-      } catch (error) {
-        console.error('Error during periodic check:', error);
-      }
-    }, 5000);
-    
-    timeoutRef.current = setTimeout(() => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      if (generationStatus === 'generating') {
-        setLoading(false);
-        setError('Story generation timed out after 15 minutes');
-        setGenerationStatus('idle');
-      }
-    }, 15 * 60 * 1000);
-  };
-
-  const handleRTDBDataFound = async (data: any) => {
-    try {
-      const storyData = {
-        title: data.title || title,
-        content: data.content || '',
-        authorId: user?.uid || '',
-        authorName: user?.displayName || '',
-        genre: data.genre || genre,
-        tone: data.tone || tone,
-        prompt: data.prompt || prompt,
-        chapters: data.chapters || chapters,
-        words: data.words || words,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        status: 'completed'
-      };
-
-      const storyId = await createStory(storyData);
-      
-      const path = RTDB_PATHS.RUNNING_EXECUTION(user?.uid || '');
-      const rtdbRef = ref(rtdb, path);
-      await remove(rtdbRef);
-      
-      setLoadingLog('Execution completed!');
-      setLoading(false);
-      setGenerationStatus('completed');
-      navigate(`/story-view/${storyId}`);
-    } catch (error) {
-      console.error('Error handling RTDB data:', error);
-      setError('Failed to process generated story');
-      setLoading(false);
-    }
-  };
-
-  const startListeningForRTDBUpdates = () => {
-    if (!user?.uid) return;
-    
-    setLoadingLog('Starting story generation...');
-    setGenerationStatus('generating');
-    startPeriodicChecking();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle metadata form submit: create project immediately
+  const handleMetaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!title.trim() || !prompt.trim()) {
+    if (!titleInput || !genreInput || !descriptionInput) {
       setError('Please fill in all required fields');
       return;
     }
-
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
+    if (!user) return;
     setLoading(true);
-    setLoadingLog('Triggering AI generation...');
     setError('');
-    setStory('');
-    setGenerationStatus('generating');
-
+    const updatedMeta = {
+      title: titleInput,
+      genre: genreInput,
+      description: descriptionInput,
+      coverImage: coverImageInput,
+      status: statusInput,
+    };
     try {
-      const generateButton = document.getElementById('generate-button');
-      if (generateButton) {
-        generateButton.disabled = true;
-      }
-
-      startListeningForRTDBUpdates();
-
-      await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title,
-          genre,
-          tone,
-          prompt,
-          userId: user.uid,
-          chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-          words: typeof words === 'number' ? words : parseInt(words as string) || 1000
-        })
-      });
-
-      setLoadingLog('Story generation has started. This may take a few minutes...');
-    } catch (error) {
-      console.error('Error triggering generation:', error);
-      setError(error instanceof Error ? error.message : 'Failed to start story generation');
-      setLoading(false);
-      setGenerationStatus('idle');
-      cleanupListenersAndTimers();
+      const newProjectId = await createProject(user.uid, updatedMeta);
+      setMeta(updatedMeta);
+      setProjectId(newProjectId);
+      setPrompt(descriptionInput);
+    } catch (err) {
+      setError('Could not create project. Please try again.');
     }
+    setLoading(false);
   };
 
-  const handleCancel = () => {
-    cleanupListenersAndTimers();
-    navigate('/dashboard');
-  };
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!title.trim() || !prompt.trim()) {
+    setError('Please fill in all required fields');
+    return;
+  }
 
-  const handleSaveAsProject = async () => {
-    setSaving(true);
-    try {
-      const projectData = {
+  if (!user) {
+    setShowAuthModal(true);
+    return;
+  }
+
+  setLoading(true);
+  setLoadingLog('Triggering AI generation...');
+  setError('');
+  setStory('');
+
+  try {
+    setLoadingLog('Fetching from n8n...');
+    // Call n8n and expect the story in the response (not saving to Firebase yet)
+    const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         title,
         genre,
-        description: prompt,
-        status: 'Draft',
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        userId: user?.uid || '',
-        chapters: [],
-        wordCount: typeof words === 'number' ? words : parseInt(words as string) || 1000
-      };
+        tone,
+        prompt,
+        userId: user.uid,
+        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+        words: typeof words === 'number' ? words : parseInt(words as string) || 1000
+      })
+    });
+    if (!response.ok) throw new Error('Failed to generate story');
+    const storyText = await response.text();
+    setPendingStory(storyText);
+    setShowPreviewModal(true);
+    setLoadingLog('Previewing story...');
+    setLoading(false);
+  } catch (error) {
+    console.error('Error:', error);
+    setError(error instanceof Error ? error.message : 'Failed to generate story');
+    setLoading(false);
+  }
+};
 
-      const projectId = await createProject(projectData);
+// Test function to verify Firebase integration
+const handleTestFirebase = async () => {
+  if (!user) {
+    setShowAuthModal(true);
+    return;
+  }
 
-      if (story) {
-        await addChapter(projectId, {
-          title: 'Chapter 1',
-          content: story,
-          order: 1,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now()
-        });
-      }
+  setLoading(true);
+  setLoadingLog('Testing Firebase integration...');
+  setError('');
 
-      setSaving(false);
+  try {
+    const result = await generateStoryHybrid({
+      title: 'Test Story',
+      prompt: 'A robot learns to write poetry in a world where emotions are forbidden.',
+      genre: 'Sci-Fi',
+      tone: 'Serious',
+      chapters: 1,
+      words: 500,
+      userId: user.uid
+    });
+
+    setLoading(false);
+    setLoadingLog('Test completed successfully!');
+    setError('');
+    
+    // Show success message
+    alert(`Test successful! Story ID: ${result.storyId}\nStory length: ${result.story.length} characters`);
+    
+  } catch (error) {
+    console.error('Test error:', error);
+    setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    setLoading(false);
+  }
+};
+
+
+  // Save as chapter to the project
+  const handleSaveAsProject = async () => {
+    if (!user || !projectId) return;
+    setSaving(true);
+    try {
+      await addChapter(user.uid, projectId, {
+        title: meta.title,
+        content: story,
+        chapterNumber: 1,
+      });
       setShowResultModal(false);
-      navigate(`/project-editor/${projectId}`);
-    } catch (error) {
-      console.error('Error saving project:', error);
-      setError('Failed to save project');
-      setSaving(false);
+      navigate(`/story-editor/${projectId}`);
+    } catch (err) {
+      setError('Could not save story. Please try again.');
     }
+    setSaving(false);
   };
 
   const handleSavePreviewStory = async () => {
@@ -325,35 +233,39 @@ const NewStory: React.FC = () => {
       setShowAuthModal(true);
       return;
     }
-
-    setSaving(true);
+    setLoading(true);
     setLoadingLog('Saving to Firebase...');
-
     try {
-      const storyData = {
+      const storyId = await createStory({
         title,
         content: pendingStory,
         authorId: user.uid,
         authorName: user.displayName || '',
         genre,
         tone,
-        prompt,
-        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-        words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        status: 'Draft'
-      };
-
-      const storyId = await createStory(storyData);
-      setSaving(false);
+      });
+      setLoadingLog('Story generation completed!');
       setShowPreviewModal(false);
+      setLoading(false);
       navigate(`/story-view/${storyId}`);
     } catch (error) {
-      console.error('Error saving preview story:', error);
-      setError('Failed to save story');
-      setSaving(false);
+      setError(error instanceof Error ? error.message : 'Failed to save story');
+      setLoading(false);
     }
+  };
+
+  // Cancel handler
+  const handleCancel = () => {
+      navigate('/dashboard');
+  };
+
+  // Example usage in a handler:
+  const handleCreateStory = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    // ... rest of the create story logic ...
   };
 
   return (
@@ -526,17 +438,16 @@ const NewStory: React.FC = () => {
 
               {/* Mobile-Optimized Generate Button */}
               <Button
-                id="generate-button"
                 type="submit"
                 variant="primary"
-                disabled={loading || generationStatus === 'generating'}
+                disabled={loading}
                 className="w-full py-3 sm:py-4 text-base sm:text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading || generationStatus === 'generating' ? (
+                {loading ? (
                   <div className="flex flex-col items-center gap-2 w-full">
                     <div className="flex items-center gap-2 w-full justify-center">
                       <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
-                      {generationStatus === 'generating' ? 'Generating Story...' : 'Processing...'}
+                      Generating Story...
                     </div>
                     <span className="text-xs text-white/90 mt-1 w-full text-center">{loadingLog}</span>
                   </div>
@@ -546,6 +457,20 @@ const NewStory: React.FC = () => {
                     Generate Story
                   </div>
                 )}
+              </Button>
+
+              {/* Test Firebase Integration Button */}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleTestFirebase}
+                disabled={loading}
+                className="w-full py-2 sm:py-3 text-sm sm:text-base font-medium bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2">
+                  <FiZap className="w-4 h-4" />
+                  Test Firebase Integration
+                </div>
               </Button>
 
               {error && (
