@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { createProject, addChapter, createStory } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db, firebase } from '../firebase';
-import { ref, onValue, off, remove } from 'firebase/database';
+import { ref, onValue, off, remove, set } from 'firebase/database';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
@@ -13,14 +13,6 @@ import Card from '../components/ui/Card';
 
 const genres = ['Any', 'Fantasy', 'Sci-Fi', 'Mystery', 'Romance', 'Horror', 'Adventure', 'Thriller', 'Historical', 'Contemporary'];
 const tones = ['Any', 'Serious', 'Humorous', 'Dramatic', 'Inspiring', 'Dark', 'Lighthearted', 'Mysterious', 'Romantic', 'Epic'];
-const lengths = ['Short', 'Medium', 'Long'];
-const examplePrompts = [
-  'A detective wakes up with no memory of the last 24 hours.',
-  'Describe a world where dreams are real and reality is a dream.',
-  'A robot learns to write poetry.',
-  'A forbidden romance between rivals in a magical academy.',
-  'The last human on Earth receives a mysterious message.'
-];
 
 const aiPromptExamples = [
   'A detective wakes up with no memory in a city where no one can lie.',
@@ -30,7 +22,7 @@ const aiPromptExamples = [
   'A child finds a door to another world in their school library.'
 ];
 
-// Add a shuffle utility
+// Shuffle utility
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -42,44 +34,32 @@ function shuffleArray<T>(array: T[]): T[] {
 
 const NewStory: React.FC = () => {
   const { user } = useAuth();
-  const userId = user?.uid;
   const navigate = useNavigate();
-  // Metadata and project state
-  const [meta, setMeta] = useState<{ title: string; genre: string; description: string; coverImage: string; status: 'Draft' | 'Editing' | 'Completed'; }>({ title: '', genre: '', description: '', coverImage: '', status: 'Draft' });
-  const [projectId, setProjectId] = useState<string | null>(null);
-  // Generator state
+  
+  // Form state
+  const [title, setTitle] = useState('');
   const [prompt, setPrompt] = useState('');
+  const [genre, setGenre] = useState('Any');
   const [tone, setTone] = useState('Any');
+  const [chapters, setChapters] = useState<string | number>(1);
+  const [words, setWords] = useState<string | number>(1000);
+  const [wordWarning, setWordWarning] = useState('');
+  
+  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [story, setStory] = useState('');
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-  // Add dedicated state for each input
-  const [titleInput, setTitleInput] = useState('');
-  const [genreInput, setGenreInput] = useState('');
-  const [descriptionInput, setDescriptionInput] = useState('');
-  const [coverImageInput, setCoverImageInput] = useState('');
-  const [statusInput, setStatusInput] = useState<'Draft' | 'Editing' | 'Completed'>('Draft');
-  const [metaComplete, setMetaComplete] = useState(false);
-  const [genre, setGenre] = useState('Any');
-  // Change chapters state to allow string or number
-  const [chapters, setChapters] = useState<string | number>(1);
-  const [words, setWords] = useState<string | number>(1000); // Allow string for controlled input
-  const [wordWarning, setWordWarning] = useState('');
-  // Remove metaComplete and Story Info form, move title input to generator form
-  const [title, setTitle] = useState('');
-  const [showAuthModal, setShowAuthModal] = React.useState(false);
-  const [loadingLog, setLoadingLog] = useState<string>('');
-  const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
-  const [testMode, setTestMode] = useState(false);
+  const [loadingLog, setLoadingLog] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
+  const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
+  
+  // Monitoring state
   const [checkingInterval, setCheckingInterval] = useState<NodeJS.Timeout | null>(null);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
+    setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5));
     
     // Check for existing running execution on page load
     if (user?.uid) {
@@ -101,66 +81,39 @@ const NewStory: React.FC = () => {
     return () => window.removeEventListener('use-prompt-template', handler as EventListener);
   }, []);
 
-  // When modal opens, initialize input states from meta (only once)
-  useEffect(() => {
-    setTitleInput(meta.title);
-    setGenreInput(meta.genre);
-    setDescriptionInput(meta.description);
-    setCoverImageInput(meta.coverImage);
-    setStatusInput(meta.status);
-  }, []);
-
   const checkForRunningExecution = async () => {
     if (!user?.uid) return;
     
     const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
     
     try {
-      const snapshot = await new Promise((resolve) => {
-        onValue(runningExecutionRef, (snapshot) => {
-          resolve(snapshot);
-        }, { onlyOnce: true });
-      });
-      
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        setLoadingLog('Found existing story generation. Retrieving...');
-        
-        // Create the Firestore record with all fields except content
-        const storyData = {
-          title: data.title || title,
-          content: data.content || '',
-          authorId: user.uid,
-          authorName: user.displayName || '',
-          genre: data.genre || genre,
-          tone: data.tone || tone,
-          prompt: data.prompt || prompt,
-          chapters: data.chapters || chapters,
-          words: data.words || words,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        };
-        
-        // If content exists, save to Firestore
-        if (data.content) {
-          const storyId = await createStory(storyData);
-          setLoadingLog('Story generation completed!');
-          setPendingStory(data.content);
-          setShowPreviewModal(true);
+      onValue(runningExecutionRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          setLoadingLog('Found existing story generation. Retrieving...');
           
-          // Delete the realtime record
-          await remove(runningExecutionRef);
-        } else {
-          // Just show that we found an execution in progress
-          setLoadingLog('Story generation in progress...');
+          // If content exists, show it
+          if (data.content) {
+            setLoadingLog('Story generation completed!');
+            setPendingStory(data.content);
+            setShowPreviewModal(true);
+            
+            // Clean up the realtime record
+            remove(runningExecutionRef);
+          } else {
+            // Generation still in progress
+            setLoadingLog('Story generation in progress...');
+            setLoading(true);
+            startMonitoring();
+          }
         }
-      }
+      }, { onlyOnce: true });
     } catch (error) {
       console.error('Error checking for running execution:', error);
     }
   };
 
-  const listenForStoryCompletion = () => {
+  const startMonitoring = () => {
     if (!user?.uid) return;
     
     const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
@@ -169,94 +122,51 @@ const NewStory: React.FC = () => {
     const timeout = setTimeout(() => {
       if (checkingInterval) clearInterval(checkingInterval);
       setLoading(false);
+      setLoadingLog('');
       setError('Story generation timed out after 15 minutes');
     }, 15 * 60 * 1000);
     setTimeoutId(timeout);
     
     // Check every 5 seconds
-    const interval = setInterval(async () => {
-      try {
-        const snapshot = await new Promise((resolve) => {
-          onValue(runningExecutionRef, (snapshot) => {
-            resolve(snapshot);
-          }, { onlyOnce: true });
-        });
-        
+    const interval = setInterval(() => {
+      onValue(runningExecutionRef, (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
           
           if (data.content) {
-            // We have content, save to Firestore
+            // We have content!
             clearInterval(interval);
             clearTimeout(timeout);
+            setCheckingInterval(null);
+            setTimeoutId(null);
             
-            const storyData = {
-              title: data.title || title,
-              content: data.content,
-              authorId: user.uid,
-              authorName: user.displayName || '',
-              genre: data.genre || genre,
-              tone: data.tone || tone,
-              prompt: data.prompt || prompt,
-              chapters: data.chapters || chapters,
-              words: data.words || words,
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
-            };
-            
-            const storyId = await createStory(storyData);
             setLoadingLog('Story generation completed!');
             setPendingStory(data.content);
             setShowPreviewModal(true);
             setLoading(false);
             
-            // Delete the realtime record
-            await remove(runningExecutionRef);
+            // Clean up the realtime record
+            remove(runningExecutionRef);
+          } else {
+            // Update loading log if available
+            if (data.status) {
+              setLoadingLog(data.status);
+            }
           }
         } else {
-          // No data found (maybe deleted by another process)
+          // No data found (maybe deleted or failed)
           clearInterval(interval);
           clearTimeout(timeout);
+          setCheckingInterval(null);
+          setTimeoutId(null);
           setLoading(false);
+          setLoadingLog('');
           setError('Story generation failed - no data received');
         }
-      } catch (error) {
-        console.error('Error checking for story completion:', error);
-        clearInterval(interval);
-        clearTimeout(timeout);
-        setLoading(false);
-        setError('Error checking story generation status');
-      }
+      }, { onlyOnce: true });
     }, 5000);
     
     setCheckingInterval(interval);
-  };
-
-  const handleMetaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!titleInput || !genreInput || !descriptionInput) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    if (!user) return;
-    setLoading(true);
-    setError('');
-    const updatedMeta = {
-      title: titleInput,
-      genre: genreInput,
-      description: descriptionInput,
-      coverImage: coverImageInput,
-      status: statusInput,
-    };
-    try {
-      const newProjectId = await createProject(user.uid, updatedMeta);
-      setMeta(updatedMeta);
-      setProjectId(newProjectId);
-      setPrompt(descriptionInput);
-    } catch (err) {
-      setError('Could not create project. Please try again.');
-    }
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,12 +183,11 @@ const NewStory: React.FC = () => {
     }
 
     setLoading(true);
-    setLoadingLog('Triggering AI generation...');
+    setLoadingLog('Initiating story generation...');
     setError('');
-    setStory('');
 
     try {
-      // Push the generation request to Realtime Database
+      // Create the execution request in Firebase Realtime Database
       const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
       
       const executionData = {
@@ -287,42 +196,27 @@ const NewStory: React.FC = () => {
         tone,
         prompt,
         userId: user.uid,
+        userEmail: user.email,
         chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
         words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        status: 'Initializing story generation...'
       };
       
-      // Set the execution data (without content initially)
-      await setDoc(doc(db, 'runningExecutions', user.uid), executionData);
+      // Write to Realtime Database to trigger the cloud function
+      await set(runningExecutionRef, executionData);
       
-      setLoadingLog('AI generation started. Waiting for results...');
+      setLoadingLog('Story generation request submitted. Waiting for AI...');
       
-      // Start listening for completion
-      listenForStoryCompletion();
+      // Start monitoring for completion
+      startMonitoring();
       
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error starting story generation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start story generation');
       setLoading(false);
+      setLoadingLog('');
     }
-  };
-
-  // Save as chapter to the project
-  const handleSaveAsProject = async () => {
-    if (!user || !projectId) return;
-    setSaving(true);
-    try {
-      await addChapter(user.uid, projectId, {
-        title: meta.title,
-        content: story,
-        chapterNumber: 1,
-      });
-      setShowResultModal(false);
-      navigate(`/story-editor/${projectId}`);
-    } catch (err) {
-      setError('Could not save story. Please try again.');
-    }
-    setSaving(false);
   };
 
   const handleSavePreviewStory = async () => {
@@ -330,28 +224,43 @@ const NewStory: React.FC = () => {
       setShowAuthModal(true);
       return;
     }
+    
     setLoading(true);
-    setLoadingLog('Saving to Firebase...');
+    setLoadingLog('Saving story to your library...');
+    
     try {
-      const storyId = await createStory({
+      const storyData = {
         title,
         content: pendingStory,
         authorId: user.uid,
-        authorName: user.displayName || '',
+        authorName: user.displayName || user.email || 'Anonymous',
         genre,
         tone,
-      });
-      setLoadingLog('Story generation completed!');
-      setShowPreviewModal(false);
-      setLoading(false);
-      navigate(`/story-view/${storyId}`);
+        prompt,
+        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+        words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+      
+      const storyId = await createStory(storyData);
+      setLoadingLog('Story saved successfully!');
+      
+      setTimeout(() => {
+        setShowPreviewModal(false);
+        setLoading(false);
+        setLoadingLog('');
+        navigate(`/story-view/${storyId}`);
+      }, 1000);
+      
     } catch (error) {
+      console.error('Error saving story:', error);
       setError(error instanceof Error ? error.message : 'Failed to save story');
       setLoading(false);
+      setLoadingLog('');
     }
   };
 
-  // Cancel handler
   const handleCancel = () => {
     navigate('/dashboard');
   };
@@ -537,7 +446,9 @@ const NewStory: React.FC = () => {
                       <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
                       Generating Story...
                     </div>
-                    <span className="text-xs text-white/90 mt-1 w-full text-center">{loadingLog}</span>
+                    {loadingLog && (
+                      <span className="text-xs text-white/90 mt-1 w-full text-center">{loadingLog}</span>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -581,86 +492,48 @@ const NewStory: React.FC = () => {
             </div>
           </Card>
         </div>
-
-        {/* Result Modal */}
-        <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} title="Your Generated Story">
-          <div className="flex flex-col gap-4 h-full max-h-[80vh] w-full max-w-4xl mx-auto">
-            {/* Story Metadata */}
-            <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-0">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Title:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{title}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Genre:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{genre}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Tone:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{tone}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Chapters:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{chapters}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Words:</span>
-                  <p className="text-slate-600 dark:text-slate-300">{typeof words === 'number' ? words : 0}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">Prompt:</span>
-                  <p className="text-slate-600 dark:text-slate-300 truncate">{prompt}</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Story Content */}
-            <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 overflow-y-auto">
-              <div className="prose prose-slate dark:prose-invert max-w-none">
-                <div className="whitespace-pre-line text-slate-700 dark:text-slate-200 leading-relaxed">
-                  {story}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => setShowResultModal(false)}
-                className="px-6 py-2"
-              >
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSaveAsProject}
-                disabled={saving}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                {saving ? 'Saving...' : (
-                  <div className="flex items-center gap-2">
-                    <FiPlus className="w-4 h-4" />
-                    Save & Edit
-                  </div>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Modal>
       </div>
+
+      {/* Auth Modal */}
       <RequireAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Preview Your Story">
+      
+      {/* Preview Modal */}
+      <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Your Generated Story">
         <div className="flex flex-col gap-4 h-full max-h-[80vh] w-full max-w-4xl mx-auto">
-          <div className="prose prose-slate dark:prose-invert max-w-none">
-            <div className="whitespace-pre-line text-slate-700 dark:text-slate-200 leading-relaxed">
-              {pendingStory}
+          {/* Story Content */}
+          <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 overflow-y-auto">
+            <div className="prose prose-slate dark:prose-invert max-w-none">
+              <div className="whitespace-pre-line text-slate-700 dark:text-slate-200 leading-relaxed">
+                {pendingStory}
+              </div>
             </div>
           </div>
+
+          {/* Action Buttons */}
           <div className="flex gap-3 justify-end">
-            <Button variant="secondary" onClick={() => setShowPreviewModal(false)} className="px-6 py-2">Cancel</Button>
-            <Button variant="primary" onClick={handleSavePreviewStory} className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">Save</Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowPreviewModal(false)}
+              className="px-6 py-2"
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSavePreviewStory}
+              disabled={loading}
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  {loadingLog || 'Saving...'}
+                </div>
+              ) : (
+                'Save to Library'
+              )}
+            </Button>
           </div>
         </div>
       </Modal>
