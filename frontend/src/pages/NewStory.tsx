@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { createStory } from '../services/storyService';
-import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, Timestamp, collection, addDoc } from 'firebase/firestore';
 import { db, firebase } from '../firebase';
 import { ref, onValue, off, remove, set } from 'firebase/database';
 import { FiX, FiZap, FiBook, FiEdit3 } from 'react-icons/fi';
@@ -19,7 +19,12 @@ const aiPromptExamples = [
   'A dragon who wants to be a poet, not a fighter.',
   'A romance between two rival AI assistants.',
   'A spaceship crew discovers a planet where time runs backward.',
-  'A child finds a door to another world in their school library.'
+  'A child finds a door to another world in their school library.',
+  'A time traveler who can only move forward one day at a time.',
+  'A librarian discovers books that write themselves.',
+  'Two chefs compete in a cooking contest where ingredients have magical properties.',
+  'A musician whose melodies can heal broken hearts.',
+  'A painter whose portraits come to life at midnight.'
 ];
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -53,79 +58,100 @@ const NewStory: React.FC = () => {
   const [pendingStory, setPendingStory] = useState('');
   const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
   const [storyId, setStoryId] = useState<string | null>(null);
+  const [realtimeListener, setRealtimeListener] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5));
+    
+    // Cleanup on unmount
     return () => {
-      // Clean up any listeners
+      if (realtimeListener) {
+        realtimeListener();
+      }
     };
-  }, []);
+  }, [realtimeListener]);
+
+  // Auto-save story to Firebase (people's story should be auto-saved)
+  const autoSaveStory = async (storyContent: string) => {
+    if (!user?.uid) return;
+    
+    try {
+      const storyData = {
+        title,
+        content: storyContent,
+        authorId: user.uid,
+        authorName: user.displayName || user.email || 'Anonymous',
+        genre,
+        tone,
+        prompt,
+        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+        words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        autoSaved: true
+      };
+      
+      const docRef = await addDoc(collection(db, 'stories'), storyData);
+      console.log('Story auto-saved with ID:', docRef.id);
+      setStoryId(docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      return null;
+    }
+  };
 
   const monitorRealtimeDatabase = () => {
     if (!user?.uid) return;
     
     const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
     
-    // Listen for changes in Realtime Database
-    onValue(runningExecutionRef, async (snapshot) => {
+    // Listen for changes in Firebase Realtime Database
+    const unsubscribe = onValue(runningExecutionRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         
-        if (data.content) {
-          // Story content is ready!
+        if (data.content && data.content !== pendingStory) {
+          // New story content received from Firebase!
           setPendingStory(data.content);
-          setLoadingLog('Saving to Firestore...');
+          setLoadingLog('Story generated! Auto-saving...');
           
-          // Save to Firestore
-          try {
-            const storyData = {
-              title,
-              content: data.content,
-              authorId: user.uid,
-              authorName: user.displayName || user.email || 'Anonymous',
-              genre,
-              tone,
-              prompt,
-              chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-              words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
-              createdAt: Timestamp.now(),
-              updatedAt: Timestamp.now(),
-            };
-            
-            const newStoryId = await createStory(storyData);
-            setStoryId(newStoryId);
-            
+          // Auto-save the story (no save button needed)
+          const savedStoryId = await autoSaveStory(data.content);
+          
+          if (savedStoryId) {
+            setStoryId(savedStoryId);
             // Clean up Realtime Database
             await remove(runningExecutionRef);
-            
             setLoading(false);
             setShowPreviewModal(true);
-          } catch (error) {
-            console.error('Error saving to Firestore:', error);
-            setError('Failed to save story to Firestore');
+          } else {
+            setError('Story generated but failed to save');
             setLoading(false);
           }
         } else if (data.status) {
-          // Update loading status
+          // Update loading status from n8n workflow
           setLoadingLog(data.status);
+        } else if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          await remove(runningExecutionRef);
         }
-      } else {
-        // No data found (maybe deleted or failed)
-        setError('Story generation failed - no data received');
-        setLoading(false);
       }
     });
     
+    setRealtimeListener(() => unsubscribe);
+    
     // Set a 15-minute timeout
     const timeout = setTimeout(() => {
-      off(runningExecutionRef);
+      unsubscribe();
       setError('Story generation timed out after 15 minutes');
       setLoading(false);
     }, 15 * 60 * 1000);
     
     return () => {
       clearTimeout(timeout);
-      off(runningExecutionRef);
+      unsubscribe();
     };
   };
 
@@ -143,35 +169,46 @@ const NewStory: React.FC = () => {
     }
 
     setLoading(true);
-    setLoadingLog('Initiating story generation...');
+    setLoadingLog('Sending prompt to n8n...');
     setError('');
 
     try {
-      // Trigger the story generation in Realtime Database
-      const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
+      // Send prompt to n8n webhook, but wait for Firebase data
+      const webhookUrl = 'https://hook.eu2.make.com/your-webhook-url'; // Replace with your n8n webhook URL
       
-      const executionData = {
+      const requestData = {
         title,
         genre,
         tone,
         prompt,
         userId: user.uid,
         userEmail: user.email,
+        userName: user.displayName || user.email,
         chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
         words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
-        timestamp: Date.now(),
-        status: 'Initializing story generation...'
+        timestamp: Date.now()
       };
       
-      await set(runningExecutionRef, executionData);
+      // Send to n8n for processing
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
       
-      setLoadingLog('Story generation started. Waiting for AI...');
+      if (!response.ok) {
+        throw new Error('Failed to send request to n8n');
+      }
       
-      // Start monitoring Realtime Database
+      setLoadingLog('Prompt sent! Waiting for AI to generate story...');
+      
+      // Start monitoring Firebase Realtime Database for the response
       monitorRealtimeDatabase();
       
     } catch (error) {
-      console.error('Error starting story generation:', error);
+      console.error('Error sending to n8n:', error);
       setError(error instanceof Error ? error.message : 'Failed to start story generation');
       setLoading(false);
     }
@@ -179,19 +216,30 @@ const NewStory: React.FC = () => {
 
   const handlePreviewClose = () => {
     if (storyId) {
+      // Navigate to the auto-saved story
       navigate(`/story-view/${storyId}`);
     } else {
       setShowPreviewModal(false);
+      navigate('/dashboard');
     }
   };
 
   const handleCancel = () => {
+    // Clean up any active listeners
+    if (realtimeListener) {
+      realtimeListener();
+    }
     navigate('/dashboard');
+  };
+
+  const handleGenerateMore = () => {
+    // Generate more examples
+    setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5));
   };
 
   return (
     <>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
@@ -244,10 +292,19 @@ const NewStory: React.FC = () => {
 
               {/* Prompt Section */}
               <div className="space-y-2 sm:space-y-3">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  <FiEdit3 className="inline mr-2" />
-                  Story Prompt
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <FiEdit3 className="inline mr-2" />
+                    Story Prompt
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateMore}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    More examples
+                  </button>
+                </div>
                 
                 {/* Mobile-Optimized Quick Prompts */}
                 <div className="flex flex-wrap gap-2">
@@ -413,43 +470,49 @@ const NewStory: React.FC = () => {
                 <p className="font-medium">✨ Get Creative</p>
                 <p>Don't be afraid to experiment with unusual combinations and ideas.</p>
               </div>
+              <div className="space-y-1 sm:space-y-2">
+                <p className="font-medium">🔄 Auto-Save</p>
+                <p>Your stories are automatically saved when generated - no manual saving needed!</p>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <p className="font-medium">⚡ Real-time</p>
+                <p>Watch your story appear in real-time as our AI creates it.</p>
+              </div>
             </div>
           </Card>
         </div>
       </div>
 
-     
-
       {/* Auth Modal */}
       <RequireAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
       
-      {/* Preview Modal */}
+      {/* Preview Modal - Stories auto-saved, no save button */}
       <Modal isOpen={showPreviewModal} onClose={handlePreviewClose} title="Your Generated Story">
         <div className="flex flex-col gap-4 h-full max-h-[80vh] w-full max-w-4xl mx-auto">
           {/* Story Content */}
           <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 overflow-y-auto">
             <div className="prose prose-slate dark:prose-invert max-w-none">
+              <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200">{title}</h2>
               <div className="whitespace-pre-line text-slate-700 dark:text-slate-200 leading-relaxed">
                 {pendingStory}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
+          {/* Action Buttons - No save button, story auto-saved */}
+          <div className="flex gap-3 justify-between items-center">
+            <div className="text-sm text-green-600 dark:text-green-400 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Story automatically saved!
+            </div>
             <Button
               variant="primary"
               onClick={handlePreviewClose}
               className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {loadingLog || 'Loading...'}
-                </div>
-              ) : (
-                'View Story'
-              )}
+              View Full Story
             </Button>
           </div>
         </div>
