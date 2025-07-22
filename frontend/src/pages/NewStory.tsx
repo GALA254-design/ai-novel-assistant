@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProject, addChapter, createStory } from '../services/storyService';
+import { createStory } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db, firebase } from '../firebase';
 import { ref, onValue, off, remove, set } from 'firebase/database';
-import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
+import { FiX, FiZap, FiBook, FiEdit3 } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
 import Button from '../components/ui/Button';
@@ -22,7 +22,6 @@ const aiPromptExamples = [
   'A child finds a door to another world in their school library.'
 ];
 
-// Shuffle utility
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -53,120 +52,81 @@ const NewStory: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
   const [shuffledExamples, setShuffledExamples] = useState<string[]>([]);
-  
-  // Monitoring state
-  const [checkingInterval, setCheckingInterval] = useState<NodeJS.Timeout | null>(null);
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [storyId, setStoryId] = useState<string | null>(null);
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5));
-    
-    // Check for existing running execution on page load
-    if (user?.uid) {
-      checkForRunningExecution();
-    }
-    
     return () => {
-      // Clean up intervals and timeouts
-      if (checkingInterval) clearInterval(checkingInterval);
-      if (timeoutId) clearTimeout(timeoutId);
+      // Clean up any listeners
     };
-  }, [user]);
-
-  useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      if (typeof e.detail === 'string') setPrompt(e.detail);
-    };
-    window.addEventListener('use-prompt-template', handler as EventListener);
-    return () => window.removeEventListener('use-prompt-template', handler as EventListener);
   }, []);
 
-  const checkForRunningExecution = async () => {
+  const monitorRealtimeDatabase = () => {
     if (!user?.uid) return;
     
     const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
     
-    try {
-      onValue(runningExecutionRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          setLoadingLog('Found existing story generation. Retrieving...');
+    // Listen for changes in Realtime Database
+    onValue(runningExecutionRef, async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        
+        if (data.content) {
+          // Story content is ready!
+          setPendingStory(data.content);
+          setLoadingLog('Saving to Firestore...');
           
-          // If content exists, show it
-          if (data.content) {
-            setLoadingLog('Story generation completed!');
-            setPendingStory(data.content);
-            setShowPreviewModal(true);
+          // Save to Firestore
+          try {
+            const storyData = {
+              title,
+              content: data.content,
+              authorId: user.uid,
+              authorName: user.displayName || user.email || 'Anonymous',
+              genre,
+              tone,
+              prompt,
+              chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
+              words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            };
             
-            // Clean up the realtime record
-            remove(runningExecutionRef);
-          } else {
-            // Generation still in progress
-            setLoadingLog('Story generation in progress...');
-            setLoading(true);
-            startMonitoring();
+            const newStoryId = await createStory(storyData);
+            setStoryId(newStoryId);
+            
+            // Clean up Realtime Database
+            await remove(runningExecutionRef);
+            
+            setLoading(false);
+            setShowPreviewModal(true);
+          } catch (error) {
+            console.error('Error saving to Firestore:', error);
+            setError('Failed to save story to Firestore');
+            setLoading(false);
           }
+        } else if (data.status) {
+          // Update loading status
+          setLoadingLog(data.status);
         }
-      }, { onlyOnce: true });
-    } catch (error) {
-      console.error('Error checking for running execution:', error);
-    }
-  };
-
-  const startMonitoring = () => {
-    if (!user?.uid) return;
-    
-    const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
+      } else {
+        // No data found (maybe deleted or failed)
+        setError('Story generation failed - no data received');
+        setLoading(false);
+      }
+    });
     
     // Set a 15-minute timeout
     const timeout = setTimeout(() => {
-      if (checkingInterval) clearInterval(checkingInterval);
-      setLoading(false);
-      setLoadingLog('');
+      off(runningExecutionRef);
       setError('Story generation timed out after 15 minutes');
+      setLoading(false);
     }, 15 * 60 * 1000);
-    setTimeoutId(timeout);
     
-    // Check every 5 seconds
-    const interval = setInterval(() => {
-      onValue(runningExecutionRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          
-          if (data.content) {
-            // We have content!
-            clearInterval(interval);
-            clearTimeout(timeout);
-            setCheckingInterval(null);
-            setTimeoutId(null);
-            
-            setLoadingLog('Story generation completed!');
-            setPendingStory(data.content);
-            setShowPreviewModal(true);
-            setLoading(false);
-            
-            // Clean up the realtime record
-            remove(runningExecutionRef);
-          } else {
-            // Update loading log if available
-            if (data.status) {
-              setLoadingLog(data.status);
-            }
-          }
-        } else {
-          // No data found (maybe deleted or failed)
-          clearInterval(interval);
-          clearTimeout(timeout);
-          setCheckingInterval(null);
-          setTimeoutId(null);
-          setLoading(false);
-          setLoadingLog('');
-          setError('Story generation failed - no data received');
-        }
-      }, { onlyOnce: true });
-    }, 5000);
-    
-    setCheckingInterval(interval);
+    return () => {
+      clearTimeout(timeout);
+      off(runningExecutionRef);
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,7 +147,7 @@ const NewStory: React.FC = () => {
     setError('');
 
     try {
-      // Create the execution request in Firebase Realtime Database
+      // Trigger the story generation in Realtime Database
       const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
       
       const executionData = {
@@ -203,61 +163,25 @@ const NewStory: React.FC = () => {
         status: 'Initializing story generation...'
       };
       
-      // Write to Realtime Database to trigger the cloud function
       await set(runningExecutionRef, executionData);
       
-      setLoadingLog('Story generation request submitted. Waiting for AI...');
+      setLoadingLog('Story generation started. Waiting for AI...');
       
-      // Start monitoring for completion
-      startMonitoring();
+      // Start monitoring Realtime Database
+      monitorRealtimeDatabase();
       
     } catch (error) {
       console.error('Error starting story generation:', error);
       setError(error instanceof Error ? error.message : 'Failed to start story generation');
       setLoading(false);
-      setLoadingLog('');
     }
   };
 
-  const handleSavePreviewStory = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    setLoading(true);
-    setLoadingLog('Saving story to your library...');
-    
-    try {
-      const storyData = {
-        title,
-        content: pendingStory,
-        authorId: user.uid,
-        authorName: user.displayName || user.email || 'Anonymous',
-        genre,
-        tone,
-        prompt,
-        chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-        words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      };
-      
-      const storyId = await createStory(storyData);
-      setLoadingLog('Story saved successfully!');
-      
-      setTimeout(() => {
-        setShowPreviewModal(false);
-        setLoading(false);
-        setLoadingLog('');
-        navigate(`/story-view/${storyId}`);
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error saving story:', error);
-      setError(error instanceof Error ? error.message : 'Failed to save story');
-      setLoading(false);
-      setLoadingLog('');
+  const handlePreviewClose = () => {
+    if (storyId) {
+      navigate(`/story-view/${storyId}`);
+    } else {
+      setShowPreviewModal(false);
     }
   };
 
@@ -267,7 +191,7 @@ const NewStory: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-3 sm:p-4 relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
@@ -494,11 +418,13 @@ const NewStory: React.FC = () => {
         </div>
       </div>
 
+     
+
       {/* Auth Modal */}
       <RequireAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
       
       {/* Preview Modal */}
-      <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Your Generated Story">
+      <Modal isOpen={showPreviewModal} onClose={handlePreviewClose} title="Your Generated Story">
         <div className="flex flex-col gap-4 h-full max-h-[80vh] w-full max-w-4xl mx-auto">
           {/* Story Content */}
           <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 overflow-y-auto">
@@ -512,26 +438,17 @@ const NewStory: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex gap-3 justify-end">
             <Button
-              variant="secondary"
-              onClick={() => setShowPreviewModal(false)}
-              className="px-6 py-2"
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
               variant="primary"
-              onClick={handleSavePreviewStory}
-              disabled={loading}
+              onClick={handlePreviewClose}
               className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {loadingLog || 'Saving...'}
+                  {loadingLog || 'Loading...'}
                 </div>
               ) : (
-                'Save to Library'
+                'View Story'
               )}
             </Button>
           </div>
