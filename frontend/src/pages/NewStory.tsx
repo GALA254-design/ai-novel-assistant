@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { createProject, addChapter, createStory, generateStoryHybrid } from '../services/storyService';
+import { createProject, addChapter, createStory } from '../services/storyService';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, firebase } from '../firebase';
+import { ref, onValue, off, remove } from 'firebase/database';
 import { FiX, FiZap, FiBook, FiEdit3, FiArrowRight, FiPlus } from 'react-icons/fi';
 import Modal from '../components/ui/Modal';
 import RequireAuthModal from '../components/ui/RequireAuthModal';
@@ -74,10 +75,23 @@ const NewStory: React.FC = () => {
   const [testMode, setTestMode] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [pendingStory, setPendingStory] = useState('');
+  const [checkingInterval, setCheckingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setShuffledExamples(shuffleArray(aiPromptExamples).slice(0, 5)); // Show 5 random examples
-  }, []);
+    
+    // Check for existing running execution on page load
+    if (user?.uid) {
+      checkForRunningExecution();
+    }
+    
+    return () => {
+      // Clean up intervals and timeouts
+      if (checkingInterval) clearInterval(checkingInterval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [user]);
 
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -96,7 +110,128 @@ const NewStory: React.FC = () => {
     setStatusInput(meta.status);
   }, []);
 
-  // Handle metadata form submit: create project immediately
+  const checkForRunningExecution = async () => {
+    if (!user?.uid) return;
+    
+    const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
+    
+    try {
+      const snapshot = await new Promise((resolve) => {
+        onValue(runningExecutionRef, (snapshot) => {
+          resolve(snapshot);
+        }, { onlyOnce: true });
+      });
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setLoadingLog('Found existing story generation. Retrieving...');
+        
+        // Create the Firestore record with all fields except content
+        const storyData = {
+          title: data.title || title,
+          content: data.content || '',
+          authorId: user.uid,
+          authorName: user.displayName || '',
+          genre: data.genre || genre,
+          tone: data.tone || tone,
+          prompt: data.prompt || prompt,
+          chapters: data.chapters || chapters,
+          words: data.words || words,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+        
+        // If content exists, save to Firestore
+        if (data.content) {
+          const storyId = await createStory(storyData);
+          setLoadingLog('Story generation completed!');
+          setPendingStory(data.content);
+          setShowPreviewModal(true);
+          
+          // Delete the realtime record
+          await remove(runningExecutionRef);
+        } else {
+          // Just show that we found an execution in progress
+          setLoadingLog('Story generation in progress...');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for running execution:', error);
+    }
+  };
+
+  const listenForStoryCompletion = () => {
+    if (!user?.uid) return;
+    
+    const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
+    
+    // Set a 15-minute timeout
+    const timeout = setTimeout(() => {
+      if (checkingInterval) clearInterval(checkingInterval);
+      setLoading(false);
+      setError('Story generation timed out after 15 minutes');
+    }, 15 * 60 * 1000);
+    setTimeoutId(timeout);
+    
+    // Check every 5 seconds
+    const interval = setInterval(async () => {
+      try {
+        const snapshot = await new Promise((resolve) => {
+          onValue(runningExecutionRef, (snapshot) => {
+            resolve(snapshot);
+          }, { onlyOnce: true });
+        });
+        
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          
+          if (data.content) {
+            // We have content, save to Firestore
+            clearInterval(interval);
+            clearTimeout(timeout);
+            
+            const storyData = {
+              title: data.title || title,
+              content: data.content,
+              authorId: user.uid,
+              authorName: user.displayName || '',
+              genre: data.genre || genre,
+              tone: data.tone || tone,
+              prompt: data.prompt || prompt,
+              chapters: data.chapters || chapters,
+              words: data.words || words,
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            };
+            
+            const storyId = await createStory(storyData);
+            setLoadingLog('Story generation completed!');
+            setPendingStory(data.content);
+            setShowPreviewModal(true);
+            setLoading(false);
+            
+            // Delete the realtime record
+            await remove(runningExecutionRef);
+          }
+        } else {
+          // No data found (maybe deleted by another process)
+          clearInterval(interval);
+          clearTimeout(timeout);
+          setLoading(false);
+          setError('Story generation failed - no data received');
+        }
+      } catch (error) {
+        console.error('Error checking for story completion:', error);
+        clearInterval(interval);
+        clearTimeout(timeout);
+        setLoading(false);
+        setError('Error checking story generation status');
+      }
+    }, 5000);
+    
+    setCheckingInterval(interval);
+  };
+
   const handleMetaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titleInput || !genreInput || !descriptionInput) {
@@ -124,91 +259,53 @@ const NewStory: React.FC = () => {
     setLoading(false);
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!title.trim() || !prompt.trim()) {
-    setError('Please fill in all required fields');
-    return;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title.trim() || !prompt.trim()) {
+      setError('Please fill in all required fields');
+      return;
+    }
 
-  if (!user) {
-    setShowAuthModal(true);
-    return;
-  }
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
 
-  setLoading(true);
-  setLoadingLog('Triggering AI generation...');
-  setError('');
-  setStory('');
+    setLoading(true);
+    setLoadingLog('Triggering AI generation...');
+    setError('');
+    setStory('');
 
-  try {
-    setLoadingLog('Fetching from n8n...');
-    // Call n8n and expect the story in the response (not saving to Firebase yet)
-    const response = await fetch('https://n8nromeo123987.app.n8n.cloud/webhook/ultimate-agentic-novel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    try {
+      // Push the generation request to Realtime Database
+      const runningExecutionRef = ref(firebase.database(), `runningExecution/${user.uid}`);
+      
+      const executionData = {
         title,
         genre,
         tone,
         prompt,
         userId: user.uid,
         chapters: typeof chapters === 'number' ? chapters : parseInt(chapters as string) || 1,
-        words: typeof words === 'number' ? words : parseInt(words as string) || 1000
-      })
-    });
-    if (!response.ok) throw new Error('Failed to generate story');
-    const storyText = await response.text();
-    setPendingStory(storyText);
-    setShowPreviewModal(true);
-    setLoadingLog('Previewing story...');
-    setLoading(false);
-  } catch (error) {
-    console.error('Error:', error);
-    setError(error instanceof Error ? error.message : 'Failed to generate story');
-    setLoading(false);
-  }
-};
-
-// Test function to verify Firebase integration
-const handleTestFirebase = async () => {
-  if (!user) {
-    setShowAuthModal(true);
-    return;
-  }
-
-  setLoading(true);
-  setLoadingLog('Testing Firebase integration...');
-  setError('');
-
-  try {
-    const result = await generateStoryHybrid({
-      title: 'Test Story',
-      prompt: 'A robot learns to write poetry in a world where emotions are forbidden.',
-      genre: 'Sci-Fi',
-      tone: 'Serious',
-      chapters: 1,
-      words: 500,
-      userId: user.uid
-    });
-
-    setLoading(false);
-    setLoadingLog('Test completed successfully!');
-    setError('');
-    
-    // Show success message
-    alert(`Test successful! Story ID: ${result.storyId}\nStory length: ${result.story.length} characters`);
-    
-  } catch (error) {
-    console.error('Test error:', error);
-    setError(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    setLoading(false);
-  }
-};
-
+        words: typeof words === 'number' ? words : parseInt(words as string) || 1000,
+        timestamp: Date.now()
+      };
+      
+      // Set the execution data (without content initially)
+      await setDoc(doc(db, 'runningExecutions', user.uid), executionData);
+      
+      setLoadingLog('AI generation started. Waiting for results...');
+      
+      // Start listening for completion
+      listenForStoryCompletion();
+      
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to start story generation');
+      setLoading(false);
+    }
+  };
 
   // Save as chapter to the project
   const handleSaveAsProject = async () => {
@@ -256,16 +353,7 @@ const handleTestFirebase = async () => {
 
   // Cancel handler
   const handleCancel = () => {
-      navigate('/dashboard');
-  };
-
-  // Example usage in a handler:
-  const handleCreateStory = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    // ... rest of the create story logic ...
+    navigate('/dashboard');
   };
 
   return (
@@ -457,20 +545,6 @@ const handleTestFirebase = async () => {
                     Generate Story
                   </div>
                 )}
-              </Button>
-
-              {/* Test Firebase Integration Button */}
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleTestFirebase}
-                disabled={loading}
-                className="w-full py-2 sm:py-3 text-sm sm:text-base font-medium bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <div className="flex items-center gap-2">
-                  <FiZap className="w-4 h-4" />
-                  Test Firebase Integration
-                </div>
               </Button>
 
               {error && (
